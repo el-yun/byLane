@@ -42,4 +42,14 @@ describe('buildBranchName', () => {
     )
     expect(result).toBe('feat-add-dark-mode')
   })
+
+  it('슬래시 패턴에서 type이 비어있으면 선행 슬래시 없이 반환한다', () => {
+    const result = buildBranchName(
+      '{type}/{issue-number}',
+      { type: '', 'issue-number': '32' },
+      'kebab-case'
+    )
+    expect(result).toBe('32')
+    expect(result.startsWith('/')).toBe(false)
+  })
 })

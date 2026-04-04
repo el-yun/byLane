@@ -2,9 +2,9 @@ export function buildBranchName(pattern, tokens, caseStyle = null) {
   let result = pattern
   for (const [key, value] of Object.entries(tokens)) {
     if (!value) {
-      // 빈 토큰과 앞의 구분자(-) 제거
-      result = result.replace(new RegExp(`[-_]\\{${key}\\}`), '')
-      result = result.replace(new RegExp(`\\{${key}\\}[-_]?`), '')
+      // 빈 토큰과 앞의 구분자(-_/) 제거
+      result = result.replace(new RegExp(`[-_/]\\{${key}\\}`), '')
+      result = result.replace(new RegExp(`\\{${key}\\}[-_/]?`), '')
     } else {
       result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), value)
     }
@@ -13,6 +13,8 @@ export function buildBranchName(pattern, tokens, caseStyle = null) {
   result = result.replace(/\{[^}]+\}/g, '')
   // 중복 구분자 정리 (슬래시는 보존)
   result = result.replace(/[-_]{2,}/g, '-').replace(/^[-_]|[-_]$/g, '')
+  // 선행/후행 슬래시 정리
+  result = result.replace(/^\/|\/$/g, '').replace(/\/{2,}/g, '/')
   if (caseStyle === 'kebab-case') {
     result = result.replace(/\s+/g, '-').toLowerCase()
   }

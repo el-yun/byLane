@@ -41,10 +41,29 @@ export function loadConfig(dir = '.bylane') {
   const path = join(dir, 'bylane.json')
   if (!existsSync(path)) return { ...DEFAULT_CONFIG }
   try {
-    return JSON.parse(readFileSync(path, 'utf8'))
+    const raw = JSON.parse(readFileSync(path, 'utf8'))
+    return deepMerge({ ...DEFAULT_CONFIG }, raw)
   } catch {
     return { ...DEFAULT_CONFIG }
   }
+}
+
+function deepMerge(target, source) {
+  const result = { ...target }
+  for (const key of Object.keys(source)) {
+    if (
+      source[key] !== null &&
+      typeof source[key] === 'object' &&
+      !Array.isArray(source[key]) &&
+      typeof target[key] === 'object' &&
+      target[key] !== null
+    ) {
+      result[key] = deepMerge(target[key], source[key])
+    } else {
+      result[key] = source[key]
+    }
+  }
+  return result
 }
 
 export function saveConfig(config, dir = '.bylane') {

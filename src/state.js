@@ -1,9 +1,10 @@
-import { readFileSync, writeFileSync, unlinkSync, readdirSync, existsSync } from 'fs'
+import { readFileSync, writeFileSync, unlinkSync, readdirSync, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
 
 const DEFAULT_DIR = '.bylane/state'
 
 export function writeState(agentName, data, dir = DEFAULT_DIR) {
+  mkdirSync(dir, { recursive: true })
   const payload = {
     ...data,
     agent: agentName,
