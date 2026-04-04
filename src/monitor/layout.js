@@ -27,7 +27,11 @@ export function createLayout() {
   })
   screen.append(footer)
 
-  screen.key(['q', 'C-c'], () => process.exit(0))
+  let cleanupFn = null
+  screen.key(['q', 'C-c'], () => {
+    if (cleanupFn) cleanupFn()
+    process.exit(0)
+  })
 
-  return { screen, header, pipeline, log, queue, status }
+  return { screen, header, pipeline, log, queue, status, onCleanup(fn) { cleanupFn = fn } }
 }

@@ -17,9 +17,14 @@ export function createQueuePanel(screen) {
   return {
     update() {
       const queuePath = '.bylane/queue.json'
-      const queue = existsSync(queuePath)
-        ? JSON.parse(readFileSync(queuePath, 'utf8'))
-        : []
+      let queue = []
+      if (existsSync(queuePath)) {
+        try {
+          queue = JSON.parse(readFileSync(queuePath, 'utf8'))
+        } catch {
+          queue = []
+        }
+      }
       const header = ` ${'#'.padEnd(3)} ${'TYPE'.padEnd(12)} ${'TARGET'.padEnd(10)} STATUS`
       const rows = queue.slice(0, 8).map((item, i) =>
         ` ${String(i + 1).padEnd(3)} ${(item.type ?? '').padEnd(12)} ${(item.target ?? '').padEnd(10)} ${item.status ?? ''}`

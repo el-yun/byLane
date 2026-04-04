@@ -2,7 +2,7 @@
 import { createLayout } from './layout.js'
 import { createPoller } from './poller.js'
 
-const { screen, header, pipeline, log, queue, status } = createLayout()
+const { screen, header, pipeline, log, queue, status, onCleanup } = createLayout()
 const poller = createPoller()
 
 let startTime = Date.now()
@@ -13,6 +13,8 @@ const clockInterval = setInterval(() => {
     elapsed: `${Math.floor((Date.now() - startTime) / 1000)}s`
   })
 }, 1000)
+
+onCleanup(() => poller.stop())
 
 poller.onChange((states) => {
   pipeline.update(states)
