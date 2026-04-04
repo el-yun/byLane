@@ -4,6 +4,7 @@
   "description": "Frontend development harness for Claude Code",
   "type": "module",
   "bin": {
+    "bylane": "./src/cli.js",
     "bylane-monitor": "./src/monitor/index.js"
   },
   "scripts": {
