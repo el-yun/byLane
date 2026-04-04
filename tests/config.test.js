@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { loadConfig, saveConfig, validateConfig, DEFAULT_CONFIG } from '../src/config.js'
 import { mkdirSync, rmSync, writeFileSync } from 'fs'
 
-const TEST_DIR = '.bylane-test'
+const TEST_DIR = '.bylane-config-test'
 
 beforeEach(() => mkdirSync(TEST_DIR, { recursive: true }))
 afterEach(() => rmSync(TEST_DIR, { recursive: true, force: true }))
