@@ -1,0 +1,21 @@
+{
+  "name": "bylane",
+  "version": "1.0.0",
+  "description": "Frontend development harness for Claude Code",
+  "type": "module",
+  "bin": {
+    "bylane-monitor": "./src/monitor/index.js"
+  },
+  "scripts": {
+    "monitor": "node src/monitor/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "blessed": "^0.1.81",
+    "chokidar": "^3.6.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  }
+}
