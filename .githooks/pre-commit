@@ -39,9 +39,10 @@ SECRET_PATTERNS=(
   'xox[baprs]-[0-9a-zA-Z]{10,}'             # Slack Token
   'AIza[0-9A-Za-z\-_]{35}'                  # Google API Key
   'ya29\.[0-9A-Za-z\-_]+'                   # Google OAuth Token
-  'Bearer [a-zA-Z0-9\-_\.]{20,}'            # Generic Bearer Token (긴 것만)
-  'password\s*=\s*["\x27][^"\x27]{6,}'      # Hardcoded password
-  'api[_-]?key\s*[=:]\s*["\x27][^"\x27]{8,}' # Hardcoded API key
+  'Bearer [a-zA-Z0-9._-]{20,}'              # Generic Bearer Token (긴 것만)
+  'password[[:space:]]*=[[:space:]]*"[^"]{6,}'  # Hardcoded password (double quote)
+  "password[[:space:]]*=[[:space:]]*'[^']{6,}"  # Hardcoded password (single quote)
+  'api_key[[:space:]]*[=:][[:space:]]*"[^"]{8,}'  # Hardcoded API key
 )
 
 for pattern in "${SECRET_PATTERNS[@]}"; do
