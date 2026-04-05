@@ -13,7 +13,6 @@ const command = args[0] || 'install'
 const useSymlink = args.includes('--symlink')
 
 const TARGETS = [
-  { src: join(ROOT, 'skills'),   dest: join(CLAUDE_DIR, 'skills'),   label: 'Skills' },
   { src: join(ROOT, 'commands'), dest: join(CLAUDE_DIR, 'commands'),  label: 'Commands' },
   { src: join(ROOT, 'hooks'),    dest: join(CLAUDE_DIR, 'hooks'),     label: 'Hooks' },
 ]
