@@ -1,5 +1,5 @@
 {
-  "name": "bylane",
+  "name": "@elyun/bylane",
   "version": "1.0.0",
   "description": "Frontend development harness for Claude Code",
   "type": "module",
