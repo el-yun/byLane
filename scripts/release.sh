@@ -5,10 +5,11 @@ VERSION="v$(node -p "require('./package.json').version")"
 
 echo "byLane npm 배포 시작: $VERSION"
 
-# 작업 디렉토리 클린 확인
-if [ -n "$(git status --short)" ]; then
+# 작업 디렉토리 클린 확인 (untracked 파일 제외, 수정/스테이징된 파일만 체크)
+DIRTY=$(git status --short | grep -v '^?' || true)
+if [ -n "$DIRTY" ]; then
   echo "오류: 커밋되지 않은 변경사항이 있습니다. 먼저 커밋하고 푸시하세요."
-  git status --short
+  echo "$DIRTY"
   exit 1
 fi
 
