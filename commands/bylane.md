@@ -17,6 +17,7 @@ description: byLane 메인 커맨드. 자연어로 전체 개발 워크플로우
 /bylane commit
 /bylane pr
 /bylane review [PR번호]
+/bylane review-loop    — 5분 주기 자동 리뷰 루프 시작
 /bylane respond [PR번호]
 /bylane notify
 /bylane status         — 현재 상태 한 줄 요약
@@ -37,6 +38,7 @@ description: byLane 메인 커맨드. 자연어로 전체 개발 워크플로우
 | `commit` | `bylane-commit-agent` |
 | `pr` | `bylane-pr-agent` |
 | `review` | `bylane-review-agent` |
+| `review-loop` | `bylane-review-loop` |
 | `respond` | `bylane-respond-agent` |
 | `notify` | `bylane-notify-agent` |
 | `status` | `.bylane/state/` 파일 읽어 한 줄 요약 출력 |

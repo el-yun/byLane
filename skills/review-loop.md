@@ -1,0 +1,105 @@
+---
+name: bylane-review-loop
+description: 5분 주기로 GitHub review 요청된 PR을 감지하여 자동으로 리뷰한다. 재요청 포함.
+---
+
+# Review Loop Agent
+
+## 개요
+
+백그라운드 폴러(`src/review-loop.js`)가 5분마다 GitHub을 체크하여 review 요청된 PR을
+`.bylane/state/review-queue.json`에 기록한다. 이 skill은 해당 큐를 감시하다가
+`status: "pending"` 항목이 생기면 `bylane-review-agent`를 실행한다.
+
+## 시작
+
+### 1. 폴러 시작 (백그라운드)
+
+```bash
+node src/review-loop.js &
+echo "폴러 PID: $!"
+```
+
+또는 별도 터미널에서:
+```bash
+node src/review-loop.js
+```
+
+### 2. 큐 감시 루프
+
+아래 루프를 실행하면서 pending PR이 생길 때마다 review-agent를 실행한다:
+
+```bash
+# 큐 확인
+node -e "
+import('./src/state.js').then(({readState}) => {
+  const q = readState('review-queue', '.bylane/state')
+  const pending = (q?.queue ?? []).filter(p => p.status === 'pending')
+  console.log(JSON.stringify(pending))
+})
+"
+```
+
+pending 항목이 있으면 각 PR에 대해:
+1. `bylane-review-agent` skill 실행 (PR 번호 전달)
+2. 리뷰 완료 후 큐 항목을 `status: "reviewed"`로 업데이트:
+
+```bash
+node -e "
+import('./src/state.js').then(({readState, writeState}) => {
+  const q = readState('review-queue', '.bylane/state')
+  const queue = (q?.queue ?? []).map(p =>
+    p.number === PR_NUMBER ? { ...p, status: 'reviewed', reviewedAt: new Date().toISOString() } : p
+  )
+  writeState('review-queue', { status: 'running', queue }, '.bylane/state')
+})
+"
+```
+
+3. 다음 pending 항목으로 반복
+4. pending 없으면 30초 대기 후 재확인
+
+## 큐 항목 스키마
+
+`.bylane/state/review-queue.json`:
+
+```json
+{
+  "agent": "review-queue",
+  "status": "running",
+  "queue": [
+    {
+      "number": 45,
+      "title": "Add dark mode toggle",
+      "url": "https://github.com/owner/repo/pull/45",
+      "branch": "feature/45-dark-mode",
+      "updatedAt": "2026-04-05T10:00:00Z",
+      "status": "pending",
+      "detectedAt": "2026-04-05T10:01:00Z"
+    }
+  ]
+}
+```
+
+`status` 값:
+- `pending` — 리뷰 대기 중
+- `reviewing` — 현재 review-agent 실행 중
+- `reviewed` — 리뷰 완료 (updatedAt 변경 시 pending으로 재전환됨)
+
+## 재요청 처리
+
+폴러가 이미 `reviewed` 상태인 PR의 `updatedAt`이 변경된 것을 감지하면
+자동으로 `status: "pending"`으로 되돌린다.
+
+## 종료
+
+```bash
+# 폴러 종료
+kill $(pgrep -f review-loop.js)
+
+# 또는 폴러 터미널에서 Ctrl+C
+```
+
+## 수동 실행
+
+`/bylane review-loop`
