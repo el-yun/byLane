@@ -14,6 +14,25 @@ description: byLane 메인 오케스트레이터. 자연어 의도를 파싱해 
 1. `.bylane/bylane.json` 로드. 없으면 즉시 `bylane-setup` 스킬 실행.
 2. `.bylane/state/` 디렉토리 확인. 없으면 생성.
 
+## 에이전트별 모델 결정
+
+각 에이전트 실행 전 사용할 모델을 config에서 읽는다:
+
+```bash
+node -e "
+import('./src/config.js').then(({loadConfig, getAgentModel}) => {
+  const config = loadConfig()
+  const agents = [
+    'orchestrator','issue-agent','code-agent','test-agent',
+    'commit-agent','pr-agent','review-agent','respond-agent','notify-agent'
+  ]
+  agents.forEach(a => console.log(a + ': ' + getAgentModel(config, a)))
+})
+"
+```
+
+에이전트 호출 시 해당 모델을 `model` 파라미터로 전달한다.
+
 ## 의도 파싱 규칙
 
 입력을 분석하여 아래 중 하나로 분류:
@@ -32,6 +51,7 @@ description: byLane 메인 오케스트레이터. 자연어 의도를 파싱해 
 ## 에이전트 실행 방법
 
 각 에이전트를 순서대로 Agent 도구로 호출한다. 이전 에이전트의 출력을 다음 에이전트의 입력으로 전달한다.
+**config에서 읽은 모델을 `model` 파라미터로 반드시 전달한다.**
 
 상태 기록 (각 에이전트 시작 전):
 ```bash

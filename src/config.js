@@ -40,6 +40,18 @@ export const DEFAULT_CONFIG = {
     owner: '',
     repo: ''
   },
+  models: {
+    default: 'claude-sonnet-4-6',
+    orchestrator: 'claude-sonnet-4-6',
+    'issue-agent': 'claude-haiku-4-5-20251001',
+    'code-agent': 'claude-sonnet-4-6',
+    'test-agent': 'claude-haiku-4-5-20251001',
+    'commit-agent': 'claude-haiku-4-5-20251001',
+    'pr-agent': 'claude-haiku-4-5-20251001',
+    'review-agent': 'claude-sonnet-4-6',
+    'respond-agent': 'claude-sonnet-4-6',
+    'notify-agent': 'claude-haiku-4-5-20251001'
+  },
   review: {
     model: 'claude-sonnet-4-6',
     language: 'ko',
@@ -83,6 +95,10 @@ function deepMerge(target, source) {
     }
   }
   return result
+}
+
+export function getAgentModel(config, agentName) {
+  return config.models?.[agentName] ?? config.models?.default ?? DEFAULT_CONFIG.models.default
 }
 
 export function saveConfig(config, dir = '.bylane') {
