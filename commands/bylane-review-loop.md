@@ -11,6 +11,23 @@ description: 5분 주기로 GitHub review 요청된 PR을 감지하여 자동으
 `.bylane/state/review-queue.json`에 기록한다. 이 skill은 해당 큐를 감시하다가
 `status: "pending"` 항목이 생기면 `bylane-review-agent`를 실행한다.
 
+## 검사 범위 설정
+
+루프 시작 전 사용자에게 검사 범위를 묻는다:
+
+```
+자동 리뷰 검사 항목을 선택하세요 (쉼표 구분, Enter=전체):
+  1. grammar  — 문법, 오탈자, 주석/변수명 언어 일관성
+  2. domain   — 비즈니스 로직, 도메인 규칙 준수 여부
+  3. code     — 코드 스타일, 컨벤션, 중복, 복잡도
+  4. security — 보안 취약점, 시크릿 노출, 인증/인가 이슈
+
+선택 (예: 1,3 또는 Enter=전체):
+```
+
+선택된 범위를 `.bylane/state/review-queue.json`의 `scope` 필드에 저장하고,
+이후 각 `bylane-review-agent` 호출 시 해당 scope를 전달한다.
+
 ## 시작
 
 ### 1. 폴러 시작 (백그라운드)
@@ -67,6 +84,7 @@ import('./src/state.js').then(({readState, writeState}) => {
 {
   "agent": "review-queue",
   "status": "running",
+  "scope": ["code", "security"],
   "queue": [
     {
       "number": 45,
