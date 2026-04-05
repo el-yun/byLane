@@ -10,6 +10,7 @@ description: byLane 메인 커맨드. 자연어로 전체 개발 워크플로우
 ```
 /bylane [자연어 명령]   — 전체 워크플로우 자동 실행
 /bylane setup          — 셋업 위자드 (재실행 가능)
+/bylane analyze        — 프로젝트 분석 후 .claude/instructions/ 에 instruction 파일 생성
 /bylane monitor        — 실시간 TUI 대시보드
 /bylane issue [#번호 | 텍스트]
 /bylane code [#번호]
@@ -39,6 +40,7 @@ description: byLane 메인 커맨드. 자연어로 전체 개발 워크플로우
 | `commit` | `bylane-commit-agent` |
 | `pr` | `bylane-pr-agent` |
 | `review` | `bylane-review-agent` |
+| `analyze` | `bylane-analyze-agent` |
 | `review-loop` | `bylane-review-loop` |
 | `respond` | `bylane-respond-agent` |
 | `respond-loop` | `bylane-respond-loop` |

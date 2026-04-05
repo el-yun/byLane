@@ -50,7 +50,8 @@ export const DEFAULT_CONFIG = {
     'pr-agent': 'claude-haiku-4-5-20251001',
     'review-agent': 'claude-sonnet-4-6',
     'respond-agent': 'claude-opus-4-6',
-    'notify-agent': 'claude-haiku-4-5-20251001'
+    'notify-agent': 'claude-haiku-4-5-20251001',
+    'analyze-agent': 'claude-opus-4-6'
   },
   review: {
     model: 'claude-sonnet-4-6',

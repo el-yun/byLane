@@ -27,6 +27,7 @@ import('./src/config.js').then(({loadConfig, getAgentModel}) => {
     'commit-agent','pr-agent','review-agent','respond-agent','notify-agent'
   ]
   agents.forEach(a => console.log(a + ': ' + getAgentModel(config, a)))
+  // analyze-agent는 항상 opus 사용 (config 무관)
 })
 "
 ```
@@ -47,6 +48,7 @@ import('./src/config.js').then(({loadConfig, getAgentModel}) => {
 | "커밋해줘" | commit-agent |
 | "PR 만들어줘" | pr-agent |
 | "테스트해줘" | test-agent |
+| "프로젝트 분석", "analyze", "코드스타일 분석", "디자인토큰 분석" | analyze-agent |
 
 ## 에이전트 실행 방법
 
