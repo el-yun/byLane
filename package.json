@@ -10,7 +10,8 @@
   "scripts": {
     "monitor": "node src/monitor/index.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "release": "bash scripts/release.sh"
   },
   "dependencies": {
     "blessed": "^0.1.81",
