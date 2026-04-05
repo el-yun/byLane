@@ -16,6 +16,20 @@ description: PR의 diff를 분석하여 코드 리뷰 코멘트를 작성한다.
 | `"api"` | REST API + `$GITHUB_TOKEN` |
 | `"auto"` (기본) | MCP → CLI → API 순서로 시도 |
 
+## GitHub 리뷰 템플릿 탐지
+
+bylane 설정보다 먼저 프로젝트 내 GitHub 리뷰 템플릿을 탐색한다:
+
+```bash
+ls .github/REVIEW_TEMPLATE.md \
+   .github/review_template.md \
+   .github/CODE_REVIEW_TEMPLATE.md \
+   docs/REVIEW_TEMPLATE.md 2>/dev/null | head -1
+```
+
+GitHub 템플릿이 있으면 해당 형식을 **최우선**으로 따른다.
+없으면 아래 bylane 설정의 템플릿을 사용한다.
+
 ## 리뷰 템플릿 로드
 
 실행 전 `.bylane/bylane.json`의 `review` 설정 읽기:
