@@ -45,6 +45,7 @@ node -e "import('./src/config.js').then(({loadConfig,getAgentModel})=>{const c=l
 orchestrator → issue-agent → code-agent → test-agent → commit-agent
             → pr-agent → review-agent → respond-agent → notify-agent
 
+analyze-agent (독립: 프로젝트 분석 → .claude/instructions/ 생성)
 review-loop   (독립: 5분 주기 review 요청 감지)
 respond-loop  (독립: 5분 주기 리뷰 코멘트 감지)
 ```
@@ -71,7 +72,7 @@ respond-loop  (독립: 5분 주기 리뷰 코멘트 감지)
 ## 에이전트 모델 설정
 
 `config.models` 객체에서 에이전트별 모델 지정. `getAgentModel(config, agentName)`으로 조회.
-기본값: orchestrator/issue-agent/respond-agent → opus-4-6, code-agent/review-agent → sonnet-4-6, 나머지 → haiku-4-5.
+기본값: orchestrator/issue-agent/respond-agent/analyze-agent → opus-4-6, code-agent/review-agent → sonnet-4-6, 나머지 → haiku-4-5.
 
 ## 브랜치 네이밍 토큰
 
