@@ -16,6 +16,34 @@ description: PR의 diff를 분석하여 코드 리뷰 코멘트를 작성한다.
 | `"api"` | REST API + `$GITHUB_TOKEN` |
 | `"auto"` (기본) | MCP → CLI → API 순서로 시도 |
 
+## 리뷰 템플릿 로드
+
+실행 전 `.bylane/bylane.json`의 `review` 설정 읽기:
+
+```bash
+node -e "
+import('./src/config.js').then(({loadConfig}) => {
+  const c = loadConfig()
+  console.log(JSON.stringify(c.review, null, 2))
+})
+"
+```
+
+설정 항목:
+- `model` — 리뷰에 사용할 모델 (기본: `claude-sonnet-4-6`)
+- `language` — 리뷰 언어 (기본: `ko`)
+- `includeModel` — 푸터에 모델명 포함 여부
+- `includeCodeExample` — Before/After 코드 예시 포함 여부
+- `templateFile` — 커스텀 템플릿 파일 경로 (비어있으면 `templates/review-template.md` 사용)
+- `severityEmoji` — 심각도 레이블 커스터마이즈
+- `footer` — 푸터 문자열 (`{model}`, `{date}` 치환 가능)
+
+커스텀 템플릿이 있으면 로드:
+```bash
+# templateFile이 설정된 경우
+cat TEMPLATE_FILE_PATH
+```
+
 ## 입력
 
 PR 번호 (`.bylane/state/pr-agent.json`에서 자동 로드, 또는 수동 전달)
@@ -36,7 +64,6 @@ node -e "import('./src/state.js').then(({writeState})=>writeState('review-agent'
    **CLI:**
    ```bash
    gh pr diff PR_NUMBER
-   # 파일 목록
    gh pr view PR_NUMBER --json files
    ```
 
@@ -54,25 +81,45 @@ node -e "import('./src/state.js').then(({writeState})=>writeState('review-agent'
    - 코딩 컨벤션 위반
    - 테스트 커버리지 누락
 
-3. 리뷰 코멘트 심각도:
-   - **CRITICAL**: 즉시 수정 필요 (버그, 보안)
-   - **HIGH**: 수정 강력 권장
-   - **MEDIUM**: 개선 권장
-   - **LOW**: 선택적 개선
+3. 코멘트 작성 규칙 (템플릿 적용):
 
-4. 리뷰 제출:
+   각 코멘트 형식:
+   ```
+   {severityEmoji.SEVERITY} {title}
+
+   {description}
+
+   [includeCodeExample=true인 경우]
+   **Before:**
+   ```lang
+   // 문제 코드
+   ```
+   **After:**
+   ```lang
+   // 개선 코드
+   ```
+
+   {suggestion}
+   ```
+
+   리뷰 언어(`language`)에 맞게 작성. `ko`이면 한국어, `en`이면 영어.
+
+4. 전체 요약 생성:
+   - 심각도별 건수 표
+   - 주요 발견사항
+   - 종합 의견
+   - 푸터: `review.footer`의 `{model}`을 실제 모델명으로, `{date}`를 현재 날짜로 치환
+
+5. 리뷰 제출 (CRITICAL/HIGH 없으면 `APPROVE`, 있으면 `REQUEST_CHANGES`):
 
    **MCP:**
-   → GitHub MCP `create_review` 도구 사용 (event: `APPROVE` 또는 `REQUEST_CHANGES`)
+   → GitHub MCP `create_review` 도구 사용
 
    **CLI:**
    ```bash
-   # 승인
    gh pr review PR_NUMBER --approve --body "REVIEW_BODY"
-   # 변경 요청
+   # 또는
    gh pr review PR_NUMBER --request-changes --body "REVIEW_BODY"
-   # 개별 라인 코멘트
-   gh pr comment PR_NUMBER --body "COMMENT"
    ```
 
    **API:**
@@ -84,7 +131,7 @@ node -e "import('./src/state.js').then(({writeState})=>writeState('review-agent'
      -d '{"body":"REVIEW_BODY","event":"APPROVE","comments":[]}'
    ```
 
-5. 상태 업데이트:
+6. 상태 업데이트:
    ```bash
    node -e "import('./src/state.js').then(({writeState})=>writeState('review-agent',{status:'completed',progress:100,approved:APPROVED_BOOL,commentCount:COMMENT_COUNT}))"
    ```

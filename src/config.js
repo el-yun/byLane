@@ -39,6 +39,20 @@ export const DEFAULT_CONFIG = {
     method: 'auto',
     owner: '',
     repo: ''
+  },
+  review: {
+    model: 'claude-sonnet-4-6',
+    language: 'ko',
+    includeModel: true,
+    includeCodeExample: true,
+    templateFile: '',
+    severityEmoji: {
+      CRITICAL: '[CRITICAL]',
+      HIGH: '[HIGH]',
+      MEDIUM: '[MEDIUM]',
+      LOW: '[LOW]'
+    },
+    footer: 'Reviewed by byLane · model: {model}'
   }
 }
 
