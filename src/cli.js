@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { cpSync, mkdirSync, symlinkSync, existsSync, readdirSync, copyFileSync, renameSync } from 'fs'
+import { cpSync, mkdirSync, symlinkSync, existsSync, readdirSync, copyFileSync, renameSync, readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { homedir } from 'os'
@@ -23,6 +23,12 @@ function backupAndCopy(src, dest, file, label) {
   const srcFile = join(src, file)
 
   if (existsSync(destFile)) {
+    const srcContent = readFileSync(srcFile)
+    const destContent = readFileSync(destFile)
+    if (srcContent.equals(destContent)) {
+      console.log(`  = ${label}: ${file} (변경 없음, 건너뜀)`)
+      return
+    }
     const backupPath = `${destFile}.bak`
     renameSync(destFile, backupPath)
     copyFileSync(srcFile, destFile)
