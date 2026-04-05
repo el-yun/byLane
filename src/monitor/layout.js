@@ -8,6 +8,7 @@ import { createStatusPanel } from './panels/status.js'
 export function createLayout() {
   const screen = blessed.screen({
     smartCSR: true,
+    fullUnicode: true,
     title: 'byLane Monitor'
   })
 
