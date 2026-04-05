@@ -17,6 +17,28 @@ ALWAYS complete all 6 steps before saving. NEVER skip steps.
 
 2. 기존 bylane.json 있으면 현재 설정을 로드해 기본값으로 사용.
 
+## Step 0/6 — GitHub 접근 방법
+
+사용 가능한 방법을 자동 감지한 뒤 사용자에게 확인한다:
+
+```bash
+# MCP 확인: Claude Code 세션에서 GitHub MCP 도구 응답 여부
+# CLI 확인
+gh auth status 2>/dev/null && echo "cli_ok"
+# API 확인
+echo ${GITHUB_TOKEN:+api_ok}
+```
+
+> GitHub 접근 방법을 선택하세요:
+> 1. auto  — MCP → CLI → API 순서로 자동 시도 (권장)
+> 2. mcp   — GitHub MCP 도구만 사용
+> 3. cli   — gh CLI만 사용
+> 4. api   — REST API + GITHUB_TOKEN만 사용
+
+`github.method`에 저장. `cli` 또는 `api` 선택 시 추가 입력:
+- `cli`: `gh repo view`로 owner/repo 자동 감지, 실패 시 직접 입력
+- `api`: `GITHUB_TOKEN` 환경변수명 확인, owner/repo 입력
+
 ## Step 1/6 — 이슈 트래커
 
 사용자에게 묻는다:

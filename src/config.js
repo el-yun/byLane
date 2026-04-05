@@ -34,6 +34,11 @@ export const DEFAULT_CONFIG = {
   },
   extensions: {
     figma: { enabled: false, useAt: 'issue-analysis' }
+  },
+  github: {
+    method: 'auto',
+    owner: '',
+    repo: ''
   }
 }
 
