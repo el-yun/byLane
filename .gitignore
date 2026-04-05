@@ -2,3 +2,4 @@
 node_modules/
 .bylane/state/
 *.log
+docs/
