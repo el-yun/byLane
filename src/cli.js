@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { cpSync, mkdirSync, symlinkSync, existsSync, readdirSync } from 'fs'
+import { cpSync, mkdirSync, symlinkSync, existsSync, readdirSync, copyFileSync, renameSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { homedir } from 'os'
@@ -18,33 +18,48 @@ const TARGETS = [
   { src: join(ROOT, 'hooks'),    dest: join(CLAUDE_DIR, 'hooks'),     label: 'Hooks' },
 ]
 
+function backupAndCopy(src, dest, file, label) {
+  const destFile = join(dest, file)
+  const srcFile = join(src, file)
+
+  if (existsSync(destFile)) {
+    const backupPath = `${destFile}.bak`
+    renameSync(destFile, backupPath)
+    copyFileSync(srcFile, destFile)
+    console.log(`  ~ ${label}: ${file} (기존 파일 -> ${file}.bak)`)
+  } else {
+    copyFileSync(srcFile, destFile)
+    console.log(`  + ${label}: ${file}`)
+  }
+}
+
 function install() {
   console.log('\n  byLane 설치 중...\n')
 
   for (const { src, dest, label } of TARGETS) {
     mkdirSync(dest, { recursive: true })
+    const files = readdirSync(src)
 
     if (useSymlink) {
-      const files = readdirSync(src)
       for (const file of files) {
         const linkPath = join(dest, file)
         const targetPath = join(src, file)
-        if (!existsSync(linkPath)) {
+        if (existsSync(linkPath)) {
+          console.log(`  = ${label}: ${file} (심볼릭 링크 이미 존재, 건너뜀)`)
+        } else {
           symlinkSync(targetPath, linkPath)
+          console.log(`  + ${label}: ${file} -> ${linkPath}`)
         }
-        console.log(`  ✓ ${label}: ${file} → ${linkPath}`)
       }
     } else {
-      cpSync(src, dest, { recursive: true })
-      const files = readdirSync(src)
       for (const file of files) {
-        console.log(`  ✓ ${label}: ${file}`)
+        backupAndCopy(src, dest, file, label)
       }
     }
   }
 
   console.log(`
-  ✅ byLane 설치 완료!
+  byLane 설치 완료!
 
   다음 단계:
   1. Claude Code를 열고 프로젝트 디렉토리로 이동
