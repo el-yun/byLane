@@ -11,7 +11,8 @@
     "monitor": "node src/monitor/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "release": "bash scripts/release.sh"
+    "release": "bash scripts/release.sh",
+    "prepare": "git config core.hooksPath .githooks && chmod +x .githooks/pre-commit"
   },
   "dependencies": {
     "blessed": "^0.1.81",
