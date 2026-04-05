@@ -6,10 +6,10 @@ const AGENTS = [
 ]
 
 const STATUS_ICON = {
-  idle:        '[○]',
-  in_progress: '[▶]',
-  completed:   '[✓]',
-  failed:      '[✗]',
+  idle:        '[ ]',
+  in_progress: '[>]',
+  completed:   '[v]',
+  failed:      '[x]',
   escalated:   '[!]'
 }
 
@@ -36,7 +36,7 @@ export function createPipelinePanel(screen) {
           ? `${Math.floor((Date.now() - new Date(s.startedAt)) / 1000)}s`
           : ''
         const bar = s.progress > 0
-          ? `${'█'.repeat(Math.floor(s.progress / 10))}${'░'.repeat(10 - Math.floor(s.progress / 10))} ${s.progress}%`
+          ? `${'#'.repeat(Math.floor(s.progress / 10))}${'-'.repeat(10 - Math.floor(s.progress / 10))} ${s.progress}%`
           : ''
         return ` ${icon} ${name.padEnd(16)} ${elapsed.padEnd(6)} ${bar}`
       })

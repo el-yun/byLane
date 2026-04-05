@@ -22,7 +22,7 @@ export function createLayout() {
     left: 0,
     width: '100%',
     height: 1,
-    content: ' [q]종료  [p]일시정지  [c]작업취소  [Tab]포커스  [↑↓]로그스크롤  [?]도움말',
+    content: ' [q]종료  [p]일시정지  [c]작업취소  [Tab]포커스  [j/k]로그스크롤  [?]도움말',
     style: { fg: 'black', bg: 'cyan' }
   })
   screen.append(footer)

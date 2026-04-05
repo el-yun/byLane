@@ -25,7 +25,7 @@ export function createLogPanel(screen) {
         for (const entry of (state.log ?? []).slice(-5)) {
           const ts = new Date(entry.ts).toLocaleTimeString('ko-KR', { hour12: false })
           newLines.push(` ${ts} {cyan-fg}${state.agent}{/cyan-fg}`)
-          newLines.push(`   → ${entry.msg}`)
+          newLines.push(`   > ${entry.msg}`)
         }
       }
       const all = [...lines, ...newLines].slice(-50)

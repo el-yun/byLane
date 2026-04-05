@@ -17,7 +17,7 @@ export function createStatusPanel(screen) {
   return {
     update() {
       const config = loadConfig()
-      const check = (v) => v ? '{green-fg}✓{/green-fg}' : '{red-fg}✗{/red-fg}'
+      const check = (v) => v ? '{green-fg}OK{/green-fg}' : '{red-fg}--{/red-fg}'
       const lines = [
         ` GitHub      ${check(true)} 연결됨`,
         ` Linear      ${check(config.trackers.linear.enabled)} ${config.trackers.linear.enabled ? '활성' : '비활성'}`,
