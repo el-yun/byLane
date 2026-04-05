@@ -5,6 +5,8 @@ FORCE_RELEASE=false
 for arg in "$@"; do
   [ "$arg" = "--force-release" ] && FORCE_RELEASE=true
 done
+# npm run release --force-release 방식 지원 (npm_config_* 환경변수)
+[ -n "$npm_config_force_release" ] && FORCE_RELEASE=true
 
 echo "byLane 릴리즈 시작..."
 
