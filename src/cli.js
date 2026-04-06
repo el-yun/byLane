@@ -141,8 +141,14 @@ function install() {
 
 if (command === 'install') {
   install()
+} else if (command === 'monitor') {
+  // 항상 현재 패키지의 모니터 실행 (버전 일치 보장)
+  const monitorPath = join(__dirname, 'monitor', 'index.js')
+  const { spawn } = await import('child_process')
+  const child = spawn(process.execPath, [monitorPath], { stdio: 'inherit' })
+  child.on('exit', code => process.exit(code ?? 0))
 } else {
   console.error(`알 수 없는 명령: ${command}`)
-  console.error('사용법: npx bylane [install] [--symlink]')
+  console.error('사용법: npx @elyun/bylane [install|monitor] [--symlink]')
   process.exit(1)
 }

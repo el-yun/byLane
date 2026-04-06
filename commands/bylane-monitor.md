@@ -19,14 +19,11 @@ Claude가 직접 실행하지 않는다. 사용자에게 아래 명령을 안내
 모니터 대시보드는 터미널에서 직접 실행하세요:
 
 ```bash
-npm run monitor
+npx @elyun/bylane monitor
 ```
 
-byLane이 설치된 디렉토리에서 실행하거나, 현재 프로젝트에서:
-
-```bash
-npm run monitor --prefix ~/.claude/bylane
-```
+> `npx`를 사용하면 항상 최신 버전 모니터가 실행됩니다.
+> 로컬 node_modules의 구버전이 실행되지 않습니다.
 
 **종료**: `q` 또는 `Ctrl+C`
 
