@@ -18,6 +18,21 @@ const STATUS_ICON = {
   escalated:   '[!]'
 }
 
+const STATUS_COLOR = {
+  idle:        '',
+  in_progress: '{yellow-fg}',
+  running:     '{green-fg}',
+  completed:   '{green-fg}',
+  stopped:     '{grey-fg}',
+  failed:      '{red-fg}',
+  escalated:   '{red-fg}'
+}
+
+function colorize(text, status) {
+  const c = STATUS_COLOR[status] ?? ''
+  return c ? `${c}${text}{/}` : text
+}
+
 export function createPipelinePanel(screen) {
   const box = blessed.box({
     top: 3,
@@ -35,7 +50,7 @@ export function createPipelinePanel(screen) {
     update(states, subagents = { active: [], recent: [] }) {
       const lines = AGENTS.map(name => {
         const s = states[name]
-        if (!s) return ` ${STATUS_ICON.idle} ${name.padEnd(16)} 대기`
+        if (!s) return ` {grey-fg}${STATUS_ICON.idle} ${name.padEnd(16)} 대기{/}`
         const icon = STATUS_ICON[s.status] ?? STATUS_ICON.idle
         const elapsed = s.startedAt
           ? `${Math.floor((Date.now() - new Date(s.startedAt)) / 1000)}s`
@@ -43,7 +58,7 @@ export function createPipelinePanel(screen) {
         const bar = s.progress > 0
           ? `${'#'.repeat(Math.floor(s.progress / 10))}${'-'.repeat(10 - Math.floor(s.progress / 10))} ${s.progress}%`
           : ''
-        return ` ${icon} ${name.padEnd(16)} ${elapsed.padEnd(6)} ${bar}`
+        return ` ${colorize(`${icon} ${name.padEnd(16)}`, s.status)} ${elapsed.padEnd(6)} ${bar}`
       })
 
       const retries = states['orchestrator']?.retries ?? 0
@@ -57,13 +72,13 @@ export function createPipelinePanel(screen) {
       for (const name of allLoops) {
         const s = states[name]
         if (!s) {
-          lines.push(` [-] ${name.padEnd(16)} 미실행`)
+          lines.push(` {grey-fg}[-] ${name.padEnd(16)} 미실행{/}`)
         } else {
           const icon = STATUS_ICON[s.status] ?? '[-]'
           const elapsed = s.startedAt
             ? `${Math.floor((Date.now() - new Date(s.startedAt)) / 1000)}s`
             : ''
-          lines.push(` ${icon} ${name.padEnd(16)} ${elapsed}`)
+          lines.push(` ${colorize(`${icon} ${name.padEnd(16)}`, s.status)} ${elapsed}`)
         }
       }
 
