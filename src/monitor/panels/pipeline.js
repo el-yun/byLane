@@ -5,10 +5,14 @@ const AGENTS = [
   'commit-agent', 'pr-agent', 'review-agent', 'respond-agent', 'notify-agent'
 ]
 
+const LOOPS = ['review-loop', 'respond-loop']
+
 const STATUS_ICON = {
   idle:        '[ ]',
   in_progress: '[>]',
+  running:     '[>]',
   completed:   '[v]',
+  stopped:     '[-]',
   failed:      '[x]',
   escalated:   '[!]'
 }
@@ -44,6 +48,21 @@ export function createPipelinePanel(screen) {
       const retries = states['orchestrator']?.retries ?? 0
       const maxRetries = states['orchestrator']?.maxRetries ?? 3
       lines.push('', ` Retries: ${retries}/${maxRetries}`)
+
+      // 루프 프로세스 섹션
+      lines.push('', ' LOOPS')
+      for (const name of LOOPS) {
+        const s = states[name]
+        if (!s) {
+          lines.push(` [-] ${name.padEnd(16)} 미실행`)
+        } else {
+          const icon = STATUS_ICON[s.status] ?? '[-]'
+          const elapsed = s.startedAt
+            ? `${Math.floor((Date.now() - new Date(s.startedAt)) / 1000)}s`
+            : ''
+          lines.push(` ${icon} ${name.padEnd(16)} ${elapsed}`)
+        }
+      }
 
       // 하위 에이전트 섹션
       lines.push('', ' SUBAGENTS')
