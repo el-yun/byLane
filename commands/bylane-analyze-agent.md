@@ -1,6 +1,6 @@
 ---
 name: bylane-analyze-agent
-description: 현재 프로젝트를 분석하여 코드 스타일, 디자인 토큰, 아키텍처, 폴더 구조를 `.claude/instructions/` 하위에 instruction 파일로 저장하고 CLAUDE.md에 import를 추가한다.
+description: 프로젝트의 코드 스타일, 디자인 토큰, 아키텍처, 폴더 구조, 의존성을 병렬 분석하여 .claude/instructions/ 하위에 instruction 파일로 저장한다. CLAUDE.md에 import를 자동 추가하여 이후 에이전트가 프로젝트 컨텍스트를 활용할 수 있게 한다.
 ---
 
 # Analyze Agent

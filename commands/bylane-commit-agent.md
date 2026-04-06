@@ -1,6 +1,6 @@
 ---
 name: bylane-commit-agent
-description: 변경된 파일들을 conventional commit 형식으로 커밋한다.
+description: 변경된 파일들을 분석하여 conventional commit(feat/fix/refactor 등) 형식의 메시지를 자동 생성하고 커밋한다. 시크릿 파일은 자동 제외.
 ---
 
 # Commit Agent

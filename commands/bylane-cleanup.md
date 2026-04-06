@@ -1,6 +1,6 @@
 ---
 name: bylane-cleanup
-description: 상태 파일 권한 수정, 좀비 에이전트/루프 초기화, 큐 복구를 한 번에 실행한다.
+description: .bylane/state/ 파일 권한 수정(755/644), 죽은 루프 PID 정리, 30분 초과 in_progress→failed 전환, reviewing/responding→pending 큐 복구를 한 번에 실행한다.
 ---
 
 # /bylane cleanup

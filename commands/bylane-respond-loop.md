@@ -1,6 +1,6 @@
 ---
 name: bylane-respond-loop
-description: 5분 주기로 내 PR에 달린 리뷰/코멘트를 감지하여 자동으로 반박하거나 반영한다.
+description: 백그라운드 폴러가 설정 주기(기본 5분)로 내 PR에 달린 CHANGES_REQUESTED/코멘트를 감지하여 respond-queue에 기록한다. pending 항목 발생 시 respond-agent를 자동 실행하며, 대응 후 새 코멘트 감지 시 재처리한다.
 ---
 
 # Respond Loop Agent
@@ -94,4 +94,4 @@ kill $(pgrep -f respond-loop.js)
 
 ## 수동 실행
 
-`/bylane respond-loop`
+`/bylane-respond-loop`

@@ -1,6 +1,6 @@
 ---
 name: bylane-notify-agent
-description: 워크플로우 완료 또는 개입 필요 시 Slack/Telegram으로 알림을 보낸다.
+description: 워크플로우 완료, 테스트 실패, 리뷰 대기, 개입 필요 등 주요 이벤트 발생 시 설정된 채널(Slack/Telegram)로 알림을 보낸다. bylane.json의 notifications 설정을 따른다.
 ---
 
 # Notify Agent

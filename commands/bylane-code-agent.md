@@ -1,6 +1,6 @@
 ---
 name: bylane-code-agent
-description: issue-agent의 전략 스펙을 기반으로 코드를 구현한다.
+description: issue-agent가 작성한 전략 스펙(이슈 본문)을 기반으로 브랜치를 생성하고 코드를 구현한다. issueMemory에 진행 상황을 기록하며, 실패 시 피드백 루프로 재시도한다.
 ---
 
 # Code Agent

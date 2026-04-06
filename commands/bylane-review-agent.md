@@ -1,6 +1,6 @@
 ---
 name: bylane-review-agent
-description: PR의 diff를 분석하여 코드 라인별 인라인 리뷰 코멘트를 작성한다.
+description: PR의 diff를 파일별로 분석하여 코드 라인별 인라인 리뷰 코멘트를 작성한다. grammar/domain/code/security 4개 검사 범위를 지원하며 심각도(critical/warning/suggestion)를 분류한다.
 ---
 
 # Review Agent

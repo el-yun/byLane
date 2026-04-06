@@ -1,6 +1,6 @@
 ---
 name: bylane-orchestrator
-description: byLane 메인 오케스트레이터. 전략 수립 후 에이전트 파이프라인을 실행한다.
+description: byLane 메인 오케스트레이터. 자연어 의도를 파싱하여 4가지 파이프라인(새 기능/기존 이슈/리뷰/단일 에이전트) 중 하나를 선택하고 에이전트 체인을 순차 실행한다.
 ---
 
 # byLane Orchestrator
@@ -29,21 +29,54 @@ npx @elyun/bylane models
 
 ## 의도 파싱 규칙
 
-| 패턴 | 실행 흐름 |
+오케스트레이터는 `/bylane`에서 **복합 의도** 또는 **기능 요청 자연어**가 넘어올 때 실행된다.
+단일 에이전트 키워드는 `/bylane`이 직접 라우팅하므로, 오케스트레이터는 **파이프라인 실행**에 집중한다.
+
+### 파이프라인 A — 새 기능 / 이슈 없는 구현 요청
+
+**감지 키워드**: `만들어`, `추가해`, `구현해`, `개발해`, `넣어줘`, `바꿔줘`, `변경해`, `개선해`, `수정해`,
+`리팩터`, `리팩토링`, `마이그레이션`, `~해줘` (기능 설명 포함), 이슈 번호 없음
+
+**실행 흐름**:
+전략 수립 → `issue-agent` → `code-agent` → `test-agent` → `commit-agent` → `pr-agent` → `review-agent` → `notify-agent`
+
+### 파이프라인 B — 기존 이슈 구현
+
+**감지 키워드**: `#N`, `이슈 #N`, `issue #N`, `#N 구현`, `#N 작업`, `#N 해줘`, `#N 처리`
+
+**실행 흐름**:
+전략 수립(기존 이슈 분석) → `code-agent` → `test-agent` → `commit-agent` → `pr-agent` → `review-agent` → `notify-agent`
+
+### 파이프라인 C — 리뷰 관련
+
+| 감지 키워드 | 실행 |
 |---|---|
-| "구현", "만들어", "추가해", 이슈 없음 | **전략 수립** → issue-agent → code-agent → test-agent → commit-agent → pr-agent → review-agent → notify-agent |
-| "issue #N 구현", "이슈 #N 작업" | **전략 수립(기존 이슈 분석)** → code-agent → test-agent → commit-agent → pr-agent → review-agent → notify-agent |
-| "PR #N 리뷰", "리뷰해줘" | review-agent(PR번호 전달) |
-| "리뷰 #N 반영", "리뷰 수락" | respond-agent(PR번호, 모드=accept) |
-| "리뷰 #N 반박" | respond-agent(PR번호, 모드=rebut) |
-| "커밋해줘" | commit-agent |
-| "PR 만들어줘" | pr-agent |
-| "테스트해줘" | test-agent |
-| "프로젝트 분석", "analyze" | analyze-agent |
+| `PR #N 리뷰`, `리뷰해줘`, `코드 리뷰`, `#N 봐줘` | `review-agent`(PR번호 전달) |
+| `리뷰 반영`, `수락`, `accept`, `LGTM 반영`, `코멘트 반영` | `respond-agent`(모드=accept) |
+| `반박`, `rebut`, `동의 안 해`, `이유 설명`, `왜 이렇게 했냐면` | `respond-agent`(모드=rebut) |
 
-## 전략 수립 단계 (새 기능 / 이슈 구현 시 필수)
+### 파이프라인 D — 단일 에이전트 (오케스트레이터 경유 시)
 
-`리뷰`, `커밋`, `PR`, `테스트` 단독 요청이 아닌 경우 반드시 전략 수립 후 진행.
+| 감지 키워드 | 실행 |
+|---|---|
+| `커밋`, `commit`, `커밋해줘`, `변경사항 저장` | `commit-agent` |
+| `PR`, `풀리퀘`, `PR 만들어`, `PR 올려` | `pr-agent` |
+| `테스트`, `test`, `검증`, `시험`, `테스트 돌려` | `test-agent` |
+| `분석`, `analyze`, `구조 파악`, `코드 분석` | `analyze-agent` |
+| `알림`, `notify`, `슬랙`, `텔레그램`, `통보` | `notify-agent` |
+
+### 파이프라인 판단 기준
+
+1. 이슈 번호(`#N`)가 있으면 → **파이프라인 B**
+2. 기능/변경 요청 키워드가 있고 이슈 번호 없으면 → **파이프라인 A**
+3. 리뷰/대응 키워드가 있으면 → **파이프라인 C**
+4. 단일 에이전트 키워드만 있으면 → **파이프라인 D**
+5. 복합 키워드 ("이슈 만들고 구현까지", "테스트하고 커밋") → 파이프라인 A 또는 해당 에이전트 순차 실행
+6. 판단 불가 → 사용자에게 의도 확인
+
+## 전략 수립 단계 (파이프라인 A, B 필수)
+
+파이프라인 C, D (단일 에이전트 요청)가 아닌 경우 반드시 전략 수립 후 진행.
 
 issue-agent를 `model` 파라미터와 함께 호출한다. issue-agent 내부에서 다음을 수행:
 

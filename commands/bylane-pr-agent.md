@@ -1,6 +1,6 @@
 ---
 name: bylane-pr-agent
-description: 현재 브랜치의 커밋들로 GitHub Pull Request를 생성한다.
+description: 현재 브랜치의 전체 커밋 히스토리를 분석하여 GitHub Pull Request를 생성한다. 제목, 요약, 테스트 계획을 자동 작성하고 팀 모드 시 리뷰어를 할당한다.
 ---
 
 # PR Agent

@@ -1,6 +1,6 @@
 ---
 name: bylane-review-loop
-description: 5분 주기로 GitHub review 요청된 PR을 감지하여 자동으로 리뷰한다. 재요청 포함.
+description: 백그라운드 폴러가 설정 주기(기본 5분)로 GitHub review 요청 PR을 감지하여 review-queue에 기록한다. pending 항목 발생 시 review-agent를 자동 실행하며, 리뷰 후 updatedAt 변경 시 재요청도 처리한다.
 ---
 
 # Review Loop Agent
@@ -109,4 +109,4 @@ kill $(pgrep -f review-loop.js)
 
 ## 수동 실행
 
-`/bylane review-loop`
+`/bylane-review-loop`

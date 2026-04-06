@@ -1,6 +1,6 @@
 ---
 name: bylane-respond-agent
-description: PR 리뷰 코멘트에 반박하거나 코드를 수정하여 반영한다.
+description: PR 리뷰 코멘트를 분석하여 accept(코드 수정 후 재커밋) 또는 rebut(근거를 들어 반박 코멘트 작성) 모드로 대응한다. CHANGES_REQUESTED와 일반 코멘트 모두 처리.
 ---
 
 # Respond Agent

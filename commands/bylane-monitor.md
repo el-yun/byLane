@@ -1,6 +1,6 @@
 ---
 name: bylane-monitor
-description: byLane 실시간 TUI 모니터 대시보드 실행 안내. Claude가 직접 실행하지 않고 사용자 터미널 명령을 안내한다.
+description: blessed 기반 실시간 TUI 모니터 대시보드 실행 안내. 에이전트 상태, 루프 큐, 로그를 1초 주기로 폴링하여 2열 그리드로 표시한다. 터미널에서 직접 실행해야 하므로 명령만 안내한다.
 ---
 
 # /bylane monitor

@@ -1,6 +1,6 @@
 ---
 name: bylane-issue-agent
-description: 코드베이스 분석 + 사용자 문답으로 전략을 수립하고 GitHub 이슈를 작성한다.
+description: 코드베이스를 병렬 분석(구조/스타일/의존성)하고 사용자 문답으로 요구사항을 구체화한 뒤, 전략 스펙이 포함된 GitHub 이슈를 작성한다. code-agent의 입력이 된다.
 ---
 
 # Issue Agent

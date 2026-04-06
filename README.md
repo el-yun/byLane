@@ -65,10 +65,10 @@ node src/cli.js install
 설치 후 Claude Code에서 프로젝트 디렉토리로 이동:
 
 ```
-/bylane setup
+/bylane-setup
 ```
 
-인터랙티브 설정 (GitHub 접근 방법, 알림 채널, 브랜치 패턴, 에이전트 모델 등).
+인터랙티브 설정 (GitHub 접근 방법, 이슈 트래커, 알림 채널, 팀 모드, 권한, 루프 모드, 브랜치 패턴, 에이전트 모델).
 
 ### 사전 점검
 
@@ -81,7 +81,7 @@ npx @elyun/bylane preflight
 또는 Claude Code에서:
 
 ```
-/bylane preflight
+/bylane 점검해줘
 ```
 
 점검 항목: bylane.json 존재, GitHub CLI 로그인, GITHUB_TOKEN, Slack/Telegram 연동 설정.
@@ -102,14 +102,17 @@ npx @elyun/bylane preflight
 
 ## 사용법
 
-### 전체 워크플로우
+### 자연어 워크플로우 (`/bylane`)
 
 ```
 /bylane 다크모드 토글 버튼 추가해줘
 /bylane issue #123 구현해줘
 /bylane PR #45 리뷰해줘
-/bylane 리뷰 #45 반영해줘
+/bylane 리뷰 반영해줘
 ```
+
+`/bylane`은 자연어 키워드를 감지하여 적절한 에이전트를 자동 실행합니다.
+서브커맨드 없이 **자연어만** 받습니다.
 
 ### 효과적인 지시 방법
 
@@ -165,44 +168,65 @@ issue-agent가 이슈 본문의 "구현 방향"과 "관련 파일" 섹션을 읽
 | `/bylane 리팩토링해줘` | 범위 불명확 → 전체 분석 필요 | `/bylane useCart hook이 너무 커서 상태 관리 부분만 분리해줘` |
 | `/bylane 성능 개선` | 측정 기준 없음 | `/bylane 홈 화면 LCP가 4초 넘는데 이미지 lazy loading 추가해줘` |
 
-### 개별 에이전트 실행
+### 개별 에이전트 직접 실행 (`/bylane-*`)
 
-```
-/bylane analyze                  프로젝트 분석 → .claude/instructions/ 생성
-/bylane issue [#번호 | 텍스트]   이슈 생성/분석
-/bylane code [#번호]             코드 구현
-/bylane test                     테스트 실행
-/bylane commit                   커밋 생성
-/bylane pr                       PR 생성
-/bylane review [#PR번호] [scope] PR 인라인 리뷰
-/bylane respond [#PR번호] [모드] 리뷰 반박/반영
-/bylane notify                   알림 발송
-/bylane status                   현재 상태 요약
-```
+개별 에이전트를 직접 실행하려면 `/bylane-*` 커맨드를 사용합니다:
+
+| 커맨드 | 설명 |
+|---|---|
+| `/bylane-setup` | GitHub 접근, 알림, 팀 모드, 루프, 브랜치, 모델 설정 위자드 |
+| `/bylane-monitor` | TUI 대시보드 실행 안내 (에이전트 상태/큐/로그 실시간 표시) |
+| `/bylane-cleanup` | 파일 권한 수정, 죽은 PID 정리, 큐 복구 일괄 실행 |
+| `/bylane-analyze-agent` | 코드 스타일/디자인 토큰/아키텍처 분석 → `.claude/instructions/` 생성 |
+| `/bylane-issue-agent` | 코드베이스 분석 + 문답 → 전략 스펙 포함 GitHub 이슈 작성 |
+| `/bylane-code-agent` | 이슈 전략 스펙 기반 브랜치 생성 + 코드 구현 |
+| `/bylane-test-agent` | 테스트 실행, FAIL 시 상세 기록으로 재시도 피드백 제공 |
+| `/bylane-commit-agent` | conventional commit 메시지 자동 생성 + 커밋 |
+| `/bylane-pr-agent` | 커밋 히스토리 분석 → PR 제목/요약/테스트 계획 자동 작성 |
+| `/bylane-review-agent` | PR diff 라인별 인라인 리뷰 (grammar/domain/code/security) |
+| `/bylane-respond-agent` | 리뷰 코멘트 accept(수정 반영) 또는 rebut(반박) 대응 |
+| `/bylane-review-loop` | 설정 주기로 review 요청 PR 감지 → 자동 리뷰 실행 |
+| `/bylane-respond-loop` | 설정 주기로 내 PR 리뷰/코멘트 감지 → 자동 대응 실행 |
+| `/bylane-notify-agent` | Slack/Telegram 알림 발송 |
 
 ### 자동 루프
 
-두 루프를 동시에 실행하면 리뷰 요청과 리뷰 대응을 완전 자동화합니다:
+두 루프를 동시에 실행하면 리뷰 요청과 리뷰 대응을 완전 자동화합니다.
+
+#### CLI로 루프 관리 (권장)
 
 ```bash
-node src/review-loop.js &   # 내게 요청된 PR 자동 리뷰 (5분 주기)
-node src/respond-loop.js &  # 내 PR 리뷰 자동 대응 (5분 주기)
+npx @elyun/bylane loop start   # review-loop + respond-loop 동시 시작 (tmux 또는 process)
+npx @elyun/bylane loop stop    # 루프 종료
+npx @elyun/bylane loop status  # 실행 상태 확인
 ```
 
-루프 종료:
+두 가지 실행 모드 (`/bylane-setup`에서 설정):
+
+| 모드 | 설명 |
+|------|------|
+| `tmux` (기본) | tmux 세션에서 백그라운드 실행. 터미널 종료/SSH 끊김 시에도 유지 |
+| `process` | 현재 프로세스에서 직접 실행. tmux 미설치 시 자동 fallback |
+
+두 모드 모두 **절대시간 기반 폴링**을 사용합니다:
+- macOS 잠자기 모드 해제 직후 경과 시간 감지 → 즉시 폴링 실행
+- 잠자기 중에는 CPU 정지로 실행 불가 (OS 제약)
+
+#### Claude Code에서 실행
+
+```
+/bylane-review-loop     자동 리뷰 루프 시작 (검사 범위 선택 후 시작)
+/bylane-respond-loop    자동 대응 루프 시작
+```
+
+#### 수동 실행
 
 ```bash
-kill $(pgrep -f review-loop.js)
-kill $(pgrep -f respond-loop.js)
-# 또는 모니터에서 [s]
+node src/review-loop.js &   # 내게 요청된 PR 자동 리뷰
+node src/respond-loop.js &  # 내 PR 리뷰 자동 대응
 ```
 
-Claude Code에서 실행:
-
-```
-/bylane review-loop     자동 리뷰 루프 시작 (검사 범위 선택 후 시작)
-/bylane respond-loop    자동 대응 루프 시작
-```
+루프 종료: 모니터에서 `[s]` 키, 또는 `npx @elyun/bylane loop stop`
 
 ---
 
@@ -265,7 +289,7 @@ npx @elyun/bylane monitor
 
 인자로도 지정 가능:
 ```
-/bylane review #45 code,security
+/bylane PR #45 code,security만 리뷰해줘
 ```
 
 ### 인라인 코멘트
@@ -306,9 +330,9 @@ docs/REVIEW_TEMPLATE.md
 | `manual` | 코멘트별로 수정/반박/건너뜀 직접 선택 |
 
 ```
-/bylane respond #45           auto 모드 (기본)
-/bylane respond #45 manual    코멘트별 수동 선택
-/bylane respond #45 accept    전체 반영
+/bylane #45 리뷰 대응해줘            auto 모드 (기본)
+/bylane #45 리뷰 코멘트별로 보여줘    manual 모드
+/bylane #45 리뷰 전부 반영해줘       accept 모드
 ```
 
 auto 모드에서는 실행 전 요약을 먼저 보여주고 확인을 받습니다:
@@ -365,7 +389,7 @@ npx @elyun/bylane memory append 123 code-agent "메모 내용"  # 직접 추가
 
 ## 프로젝트 분석
 
-`/bylane analyze` 실행 시 현재 프로젝트를 자동 분석하여 Claude Code가 참조할 instruction 파일을 생성합니다.
+`/bylane-analyze-agent` (또는 `/bylane 프로젝트 분석해줘`) 실행 시 현재 프로젝트를 자동 분석하여 Claude Code가 참조할 instruction 파일을 생성합니다.
 
 | 파일 | 내용 |
 |------|------|
@@ -376,8 +400,8 @@ npx @elyun/bylane memory append 123 code-agent "메모 내용"  # 직접 추가
 ESLint/Prettier/tsconfig, Tailwind config, CSS 변수 등 설정 파일을 자동 탐색하고 실제 소스 패턴을 샘플링합니다. 분석 후 `CLAUDE.md`에 import 구문을 자동 추가합니다.
 
 ```
-/bylane analyze          기존 파일 있으면 확인 요청
-/bylane analyze --force  강제 덮어쓰기
+/bylane-analyze-agent              기존 파일 있으면 확인 요청
+/bylane 프로젝트 분석 강제로 해줘   강제 덮어쓰기
 ```
 
 ---
@@ -495,7 +519,7 @@ npx @elyun/bylane   # 재설치/업데이트
 
 ### 루프 중복 실행
 
-review-loop / respond-loop는 PID를 상태 파일에 기록합니다. 모니터의 `[s]` 키 또는 `pgrep`으로 확인 후 종료하세요.
+review-loop / respond-loop는 PID를 상태 파일에 기록합니다. `npx @elyun/bylane loop status`로 상태를 확인하고, `npx @elyun/bylane loop stop` 또는 모니터 `[s]` 키로 종료하세요.
 
 ### GitHub MCP vs CLI
 

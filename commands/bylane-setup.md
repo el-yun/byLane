@@ -1,6 +1,6 @@
 ---
 name: bylane-setup
-description: byLane 하네스 최초 설치 및 설정 위자드. /bylane setup 으로 실행.
+description: byLane 최초 설치 및 설정 위자드. GitHub 접근, 이슈 트래커, 알림 채널, 팀 모드, 권한, 루프 모드, 브랜치 네이밍, 모델을 단계별로 설정하여 .bylane/bylane.json을 생성한다.
 ---
 
 # byLane Setup Wizard

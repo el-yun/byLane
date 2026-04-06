@@ -1,6 +1,6 @@
 ---
 name: bylane-test-agent
-description: 변경된 코드의 테스트를 실행하고 결과를 반환한다.
+description: 변경된 코드의 테스트를 실행하고 PASS/FAIL 결과를 반환한다. FAIL 시 실패 상세(failureDetails)를 state에 기록하여 code-agent 재시도 피드백으로 사용된다.
 ---
 
 # Test Agent
