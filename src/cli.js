@@ -270,15 +270,21 @@ if (command === 'install') {
       const state = readState(loopName)
       if (!state?.pid) continue
       const pid = Number(state.pid)
-      try {
-        process.kill(pid, 0) // PID 살아있는지 확인
-        process.kill(pid, 'SIGTERM')
-        writeState(loopName, { ...state, status: 'stopped', stoppedAt: new Date().toISOString() })
-        console.log(`  ${loopName} (PID: ${pid}) 종료`)
-        stopped = true
-      } catch {
-        console.log(`  ${loopName} (PID: ${pid}) 이미 종료됨`)
+      let alive = false
+      try { process.kill(pid, 0); alive = true } catch {}
+
+      if (alive) {
+        try {
+          process.kill(pid, 'SIGTERM')
+          console.log(`  ${loopName} (PID: ${pid}) 종료`)
+        } catch {
+          console.log(`  ${loopName} (PID: ${pid}) 종료 실패`)
+        }
+      } else {
+        console.log(`  ${loopName} (PID: ${pid}) 이미 종료됨 — 상태 정리`)
       }
+      writeState(loopName, { ...state, status: 'stopped', stoppedAt: new Date().toISOString() })
+      stopped = true
     }
 
     if (!stopped) {
