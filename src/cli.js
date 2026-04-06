@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdirSync, symlinkSync, existsSync, readdirSync, copyFileSync, renameSync, readFileSync, writeFileSync } from 'fs'
+import { mkdirSync, symlinkSync, existsSync, readdirSync, copyFileSync, renameSync, readFileSync, writeFileSync, rmSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { homedir } from 'os'
@@ -33,10 +33,8 @@ function backupAndCopy(src, dest, file, label) {
       console.log(`  = ${label}: ${file} (변경 없음, 건너뜀)`)
       return
     }
-    const backupPath = `${destFile}.bak`
-    renameSync(destFile, backupPath)
     copyFileSync(srcFile, destFile)
-    console.log(`  ~ ${label}: ${file} (업데이트됨, 기존 파일 -> ${file}.bak)`)
+    console.log(`  ~ ${label}: ${file} (업데이트됨)`)
   } else {
     copyFileSync(srcFile, destFile)
     console.log(`  + ${label}: ${file}`)
@@ -139,8 +137,48 @@ function install() {
   }
 }
 
+function uninstall() {
+  console.log('\n  byLane 제거 중...\n')
+
+  for (const { src, dest, label } of TARGETS) {
+    if (!existsSync(dest)) continue
+    const files = readdirSync(src)
+    for (const file of files) {
+      const destFile = join(dest, file)
+      if (existsSync(destFile)) {
+        rmSync(destFile)
+        console.log(`  - ${label}: ${file}`)
+      }
+    }
+  }
+
+  // settings.json에서 bylane 훅 제거
+  const settingsPath = join(CLAUDE_DIR, 'settings.json')
+  if (existsSync(settingsPath)) {
+    try {
+      const settings = JSON.parse(readFileSync(settingsPath, 'utf8'))
+      const stripBylane = (arr) =>
+        (arr ?? []).filter(h => !h.hooks?.some(hh => hh.command?.includes('bylane-agent-tracker')))
+      settings.hooks = settings.hooks ?? {}
+      settings.hooks.PreToolUse = stripBylane(settings.hooks.PreToolUse)
+      settings.hooks.PostToolUse = stripBylane(settings.hooks.PostToolUse)
+      writeFileSync(settingsPath, JSON.stringify(settings, null, 2))
+      console.log('  - Hook: bylane-agent-tracker 제거')
+    } catch {}
+  }
+
+  console.log(`
+  byLane 제거 완료.
+
+  사용자 설정(.bylane/bylane.json)은 유지됩니다.
+  Claude Code를 재시작하면 변경사항이 적용됩니다.
+`)
+}
+
 if (command === 'install') {
   install()
+} else if (command === 'uninstall') {
+  uninstall()
 } else if (command === 'preflight') {
   const { runPreflight, formatPreflight } = await import('./preflight.js')
   const result = runPreflight()
@@ -320,6 +358,6 @@ if (command === 'install') {
   child.on('exit', code => process.exit(code ?? 0))
 } else {
   console.error(`알 수 없는 명령: ${command}`)
-  console.error('사용법: npx @elyun/bylane [install|loop|monitor|preflight|state|memory|cleanup] [--symlink]')
+  console.error('사용법: npx @elyun/bylane [install|uninstall|loop|monitor|preflight|state|memory|cleanup] [--symlink]')
   process.exit(1)
 }
