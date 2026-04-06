@@ -69,6 +69,34 @@ node src/cli.js install
 
 인터랙티브 설정 (GitHub 접근 방법, 알림 채널, 브랜치 패턴, 에이전트 모델 등).
 
+### 사전 점검
+
+설정이 올바른지 확인하려면:
+
+```bash
+npx @elyun/bylane preflight
+```
+
+또는 Claude Code에서:
+
+```
+/bylane preflight
+```
+
+점검 항목: bylane.json 존재, GitHub CLI 로그인, GITHUB_TOKEN, Slack/Telegram 연동 설정.
+문제가 있으면 항목마다 수정 방법을 안내합니다.
+
+```
+── byLane 사전 점검 ──
+
+✓  bylane 설정              v1.0
+✓  GitHub CLI (fallback)   github.com
+!  GitHub Token (fallback)  GITHUB_TOKEN 환경변수 없음
+     → export GITHUB_TOKEN=ghp_xxxx
+```
+
+모든 에이전트 실행 전 자동으로 점검하여 연동 오류로 인한 중간 실패를 방지합니다.
+
 ---
 
 ## 사용법

@@ -7,11 +7,13 @@ import { execSync } from 'child_process'
 import { mkdirSync } from 'fs'
 import { writeState, readState, appendLog } from './state.js'
 import { loadConfig } from './config.js'
+import { killExistingLoop } from './loop-utils.js'
 
 const INTERVAL_MS = 5 * 60 * 1000
 const STATE_DIR = '.bylane/state'
 
 mkdirSync(STATE_DIR, { recursive: true })
+killExistingLoop('review-loop', STATE_DIR)
 
 function fetchPendingReviews(method, owner, repo) {
   // CLI

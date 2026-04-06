@@ -25,6 +25,25 @@ description: byLane 메인 커맨드. 자연어로 전체 개발 워크플로우
 /bylane status         — 현재 상태 한 줄 요약
 ```
 
+## 사전 점검 (모든 명령 전 자동 실행)
+
+서브커맨드를 라우팅하기 전 아래 점검을 실행한다:
+
+```bash
+npx @elyun/bylane preflight
+```
+
+점검 항목:
+- `.bylane/bylane.json` 존재 여부 → 없으면 `/bylane setup` 안내 후 중단
+- GitHub 접근 방법 (`github.method` 기준):
+  - `cli`: `gh auth status` → 로그인 안 됐으면 `gh auth login` 안내
+  - `api`: `GITHUB_TOKEN` 환경변수 → 없으면 설정 방법 안내
+  - `auto`/`mcp`: CLI + Token 둘 다 확인, 어느 것도 없으면 안내
+- 알림 채널 (활성화된 경우만): Slack 채널 설정 여부, Telegram 토큰 여부
+
+문제가 있으면 각 항목마다 수정 방법을 출력하고 중단한다.
+`setup`, `status`, `preflight` 서브커맨드는 점검 없이 바로 실행한다.
+
 ## 실행 흐름
 
 첫 번째 인자가 서브커맨드인지 확인.
@@ -47,6 +66,7 @@ description: byLane 메인 커맨드. 자연어로 전체 개발 워크플로우
 | `respond-loop` | `bylane-respond-loop` |
 | `notify` | `bylane-notify-agent` |
 | `status` | `.bylane/state/` 파일 읽어 한 줄 요약 출력 |
+| `preflight` | 연동 상태 점검 및 문제 안내 |
 
 ## monitor 서브커맨드
 

@@ -141,6 +141,11 @@ function install() {
 
 if (command === 'install') {
   install()
+} else if (command === 'preflight') {
+  const { runPreflight, formatPreflight } = await import('./preflight.js')
+  const result = runPreflight()
+  console.log(formatPreflight(result))
+  if (!result.passed) process.exit(1)
 } else if (command === 'models') {
   // models → 에이전트별 모델 목록 출력 (KEY=VALUE 형식)
   const { loadConfig, getAgentModel } = await import('./config.js')

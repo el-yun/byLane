@@ -11,7 +11,13 @@ description: byLane 메인 오케스트레이터. 자연어 의도를 파싱해 
 
 ## 실행 전 체크
 
-1. `.bylane/bylane.json` 로드. 없으면 즉시 `bylane-setup` 스킬 실행.
+1. 사전 점검 실행:
+   ```bash
+   npx @elyun/bylane preflight
+   ```
+   - 점검 실패 시 안내 메시지를 출력하고 워크플로우를 **중단**한다.
+   - `.bylane/bylane.json` 없으면 즉시 `bylane-setup` 스킬 실행.
+
 2. `.bylane/state/` 디렉토리 확인. 없으면 생성.
 
 ## 에이전트별 모델 결정
