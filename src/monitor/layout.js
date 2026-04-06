@@ -62,7 +62,7 @@ export function createLayout() {
     left: 0,
     width: '100%',
     height: 1,
-    content: ' [q]종료  [r]상태정리  [c]에이전트취소토글  [s]루프종료  [Tab]포커스  [j/k]로그스크롤',
+    content: ' [q]종료  [r]상태정리  [c]전체취소토글  [s]선택종료(루프/에이전트)  [Tab]포커스  [j/k]로그스크롤',
     style: { fg: 'black', bg: 'cyan' }
   })
   screen.append(footer)

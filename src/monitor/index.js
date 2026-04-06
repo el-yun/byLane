@@ -5,6 +5,7 @@ import { createPoller } from './poller.js'
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { runCleanup, formatCleanupResult } from '../cleanup.js'
+import { writeState } from '../state.js'
 
 const { screen, header, pipeline, log, queue, status, onCleanup } = createLayout()
 const poller = createPoller()
@@ -38,15 +39,24 @@ poller.onChange((states) => {
   status.update()
 })
 
-// 's' — 실행 중인 루프 선택 종료
+// 's' — 실행 중인 루프/에이전트 선택 종료
 screen.key('s', () => {
-  const runningLoops = Object.entries(lastStates)
+  // 루프: running + pid 있는 것
+  const loops = Object.entries(lastStates)
     .filter(([name, s]) => name.endsWith('-loop') && s?.status === 'running' && s?.pid)
-    .map(([name, s]) => ({ name, pid: s.pid }))
+    .map(([name, s]) => ({ name, type: 'loop', pid: s.pid }))
 
-  if (runningLoops.length === 0) {
+  // 에이전트: in_progress 상태인 것
+  const agents = Object.entries(lastStates)
+    .filter(([name, s]) => !name.endsWith('-loop') && !name.endsWith('-queue')
+      && s?.status === 'in_progress')
+    .map(([name, s]) => ({ name, type: 'agent', task: s.currentTask ?? '' }))
+
+  const items = [...loops, ...agents]
+
+  if (items.length === 0) {
     header.update({
-      workflowTitle: '실행 중인 루프 없음',
+      workflowTitle: '종료할 실행 중 항목 없음',
       time: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
       elapsed: `${Math.floor((Date.now() - startTime) / 1000)}s`
     })
@@ -54,13 +64,18 @@ screen.key('s', () => {
     return
   }
 
-  // blessed list 오버레이
+  const listItems = items.map(item =>
+    item.type === 'loop'
+      ? ` [루프]  ${item.name.padEnd(18)} PID: ${item.pid}`
+      : ` [에이전트] ${item.name.padEnd(15)} ${item.task.slice(0, 20)}`
+  )
+
   const list = blessed.list({
     top: 'center',
     left: 'center',
-    width: 40,
-    height: runningLoops.length + 4,
-    label: ' 종료할 루프 선택 (Enter/Esc) ',
+    width: 54,
+    height: items.length + 6,
+    label: ' 종료할 항목 선택 ',
     tags: true,
     border: { type: 'line' },
     style: {
@@ -69,7 +84,13 @@ screen.key('s', () => {
       item: { fg: 'white' }
     },
     keys: true,
-    items: runningLoops.map(l => ` ${l.name}  (PID: ${l.pid})`)
+    vi: true,
+    mouse: true,
+    items: [
+      ...listItems,
+      '',
+      ' {grey-fg}↑↓/jk 이동   Enter 종료   Esc 취소{/}'
+    ]
   })
 
   screen.append(list)
@@ -77,26 +98,42 @@ screen.key('s', () => {
   screen.render()
 
   list.on('select', (item, idx) => {
-    const loop = runningLoops[idx]
-    try {
-      process.kill(loop.pid, 'SIGTERM')
-      header.update({
-        workflowTitle: `${loop.name} 종료 요청됨 (PID: ${loop.pid})`,
-        time: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
-        elapsed: `${Math.floor((Date.now() - startTime) / 1000)}s`
-      })
-    } catch {
-      header.update({
-        workflowTitle: `${loop.name} 종료 실패 (이미 종료됨?)`,
-        time: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
-        elapsed: `${Math.floor((Date.now() - startTime) / 1000)}s`
-      })
+    const target = items[idx]
+    if (!target) { screen.remove(list); screen.render(); return }
+    let msg
+
+    if (target.type === 'loop') {
+      // 루프: SIGTERM
+      try {
+        process.kill(Number(target.pid), 'SIGTERM')
+        msg = `${target.name} 종료 요청됨 (PID: ${target.pid})`
+      } catch {
+        msg = `${target.name} 종료 실패 (이미 종료됨?)`
+      }
+    } else {
+      // 에이전트: 상태를 cancelled로 기록 + cancel.json 생성
+      try {
+        const cur = lastStates[target.name] ?? {}
+        writeState(target.name, { ...cur, status: 'cancelled', cancelledAt: new Date().toISOString() }, STATE_DIR)
+      } catch {}
+      // cancel.json 생성 (훅에서 새 Agent 호출 차단)
+      if (!existsSync(CANCEL_FILE)) {
+        mkdirSync(STATE_DIR, { recursive: true })
+        writeFileSync(CANCEL_FILE, JSON.stringify({ cancelledAt: new Date().toISOString() }))
+      }
+      msg = `${target.name} 취소 요청됨 (Claude 세션에서 완전 종료 필요)`
     }
+
+    header.update({
+      workflowTitle: msg,
+      time: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
+      elapsed: `${Math.floor((Date.now() - startTime) / 1000)}s`
+    })
     screen.remove(list)
     screen.render()
   })
 
-  list.key(['escape', 'q'], () => {
+  list.key(['escape'], () => {
     screen.remove(list)
     screen.render()
   })
