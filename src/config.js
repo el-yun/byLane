@@ -40,6 +40,10 @@ export const DEFAULT_CONFIG = {
     owner: '',
     repo: ''
   },
+  issue: {
+    autoCreateBranch: true,
+    autoCreateWorktree: false
+  },
   memory: {
     enabled: true,
     dir: '.bylane/memory'

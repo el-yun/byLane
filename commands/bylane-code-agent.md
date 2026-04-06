@@ -30,8 +30,26 @@ npx @elyun/bylane state write code-agent '{"status":"in_progress","startedAt":"'
 | `spec.figmaSpec` | Figma 컬러토큰·컴포넌트 구조 |
 | `issueType` | `new-feature` / `bug` / `improvement` / `chore` |
 | `issueNumber` | GitHub 이슈 번호 |
+| `branchName` | issue-agent가 생성한 브랜치명 |
+| `worktreePath` | 워크트리 경로 (없으면 `null`) |
 
 없으면 GitHub 이슈 본문을 직접 로드하여 파싱한다.
+
+### 브랜치/워크트리 확인
+
+issue-agent가 이미 브랜치를 생성했는지 확인한다:
+
+1. `branchName`이 있으면 → 해당 브랜치로 checkout
+2. `worktreePath`가 있으면 → 해당 워크트리 디렉토리에서 작업
+3. 둘 다 없으면 (`issue.autoCreateBranch: false`) → code-agent가 직접 브랜치 생성
+
+```bash
+# branchName이 있는 경우
+git checkout "$BRANCH_NAME"
+
+# worktreePath가 있는 경우 — 해당 디렉토리에서 모든 작업 수행
+cd "$WORKTREE_PATH"
+```
 
 issueMemory 로드:
 ```bash

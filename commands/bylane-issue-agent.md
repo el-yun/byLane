@@ -211,6 +211,49 @@ curl -s -X POST \
 
 ---
 
+### Phase 5 — 브랜치/워크트리 생성 (설정에 따라)
+
+이슈 생성 직후, `issue.autoCreateBranch`가 `true`이면 브랜치를 자동 생성한다.
+브랜치명은 `branch.pattern` 설정에 따라 결정된다.
+
+```bash
+# 브랜치명 생성 (src/branch.js 활용)
+BRANCH_NAME=$(node -e "
+import('./src/branch.js').then(({buildBranchNameFromConfig}) => {
+  import('./src/config.js').then(({loadConfig}) => {
+    const config = loadConfig()
+    const name = buildBranchNameFromConfig(config, {
+      issueNumber: ISSUE_NUMBER,
+      type: 'ISSUE_TYPE',
+      title: 'ISSUE_TITLE'
+    })
+    process.stdout.write(name)
+  })
+})
+")
+
+git checkout -b "$BRANCH_NAME"
+```
+
+#### 워크트리 생성 (`issue.autoCreateWorktree: true`인 경우)
+
+브랜치 대신 워크트리를 생성하여 독립된 작업 디렉토리를 만든다:
+
+```bash
+WORKTREE_DIR=".bylane/worktrees/$BRANCH_NAME"
+git worktree add "$WORKTREE_DIR" -b "$BRANCH_NAME"
+```
+
+이후 모든 에이전트(code-agent, test-agent, commit-agent 등)는 이 워크트리 경로에서 작업한다.
+state에 `branchName`과 `worktreePath`를 기록하여 후속 에이전트가 참조할 수 있게 한다.
+
+#### 설정이 꺼져 있는 경우
+
+`issue.autoCreateBranch: false`이면 이 단계를 건너뛴다.
+code-agent가 실행 시점에 브랜치를 직접 생성한다.
+
+---
+
 ## 출력
 
 `.bylane/state/issue-agent.json`:
@@ -230,7 +273,9 @@ curl -s -X POST \
     "affectedFiles": ["src/hooks/useTheme.ts", "src/components/Header/"],
     "checklist": ["ThemeToggle 컴포넌트 생성", "useTheme hook 수정", "테스트 작성"],
     "figmaSpec": { "enabled": false, "components": [], "colorTokens": {} }
-  }
+  },
+  "branchName": "issues-123-dark-mode-toggle",
+  "worktreePath": null
 }
 ```
 
