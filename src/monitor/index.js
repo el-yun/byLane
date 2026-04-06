@@ -97,6 +97,14 @@ screen.key('s', () => {
   list.focus()
   screen.render()
 
+  // 명시적 키 바인딩 (screen-level 핸들러와 충돌 방지)
+  list.key(['up', 'k'], () => { list.up(1); screen.render() })
+  list.key(['down', 'j'], () => { list.down(1); screen.render() })
+  list.key('enter', () => {
+    const idx = list.selected
+    list.emit('select', list.items[idx], idx)
+  })
+
   list.on('select', (item, idx) => {
     const target = items[idx]
     if (!target) { screen.remove(list); screen.render(); return }
