@@ -4,6 +4,7 @@ import { createLayout } from './layout.js'
 import { createPoller } from './poller.js'
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'fs'
 import { join } from 'path'
+import { runCleanup, formatCleanupResult } from '../cleanup.js'
 
 const { screen, header, pipeline, log, queue, status, onCleanup } = createLayout()
 const poller = createPoller()
@@ -99,6 +100,34 @@ screen.key('s', () => {
     screen.remove(list)
     screen.render()
   })
+})
+
+// 'r' — 상태 정리 (권한 수정, 좀비 초기화, 큐 복구)
+screen.key('r', () => {
+  header.update({
+    workflowTitle: '상태 정리 중...',
+    time: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
+    elapsed: `${Math.floor((Date.now() - startTime) / 1000)}s`
+  })
+  screen.render()
+
+  try {
+    const result = runCleanup()
+    const summary = formatCleanupResult(result)
+    const total = Object.values(result).reduce((s, a) => s + a.length, 0)
+    header.update({
+      workflowTitle: total > 0 ? `정리 완료 (${total}건)` : '정리 완료 — 이상 없음',
+      time: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
+      elapsed: `${Math.floor((Date.now() - startTime) / 1000)}s`
+    })
+  } catch (e) {
+    header.update({
+      workflowTitle: `정리 실패: ${e.message}`,
+      time: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
+      elapsed: `${Math.floor((Date.now() - startTime) / 1000)}s`
+    })
+  }
+  screen.render()
 })
 
 // 'c' — 하위 에이전트 취소 플래그 토글

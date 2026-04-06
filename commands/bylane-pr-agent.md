@@ -43,7 +43,7 @@ ls .github/PULL_REQUEST_TEMPLATE/*.md 2>/dev/null | head -5
 ## 실행 전 상태 기록
 
 ```bash
-node -e "import('./src/state.js').then(({writeState})=>writeState('pr-agent',{status:'in_progress',startedAt:new Date().toISOString(),progress:0,retries:0,log:[]}))"
+npx @elyun/bylane state write pr-agent '{"status":"in_progress","startedAt":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","progress":0,"retries":0,"log":[]}'
 ```
 
 ## 실행 흐름
@@ -90,7 +90,7 @@ node -e "import('./src/state.js').then(({writeState})=>writeState('pr-agent',{st
 
 4. 상태 업데이트:
    ```bash
-   node -e "import('./src/state.js').then(({writeState})=>writeState('pr-agent',{status:'completed',progress:100,prNumber:PR_NUMBER,prUrl:'PR_URL'}))"
+   npx @elyun/bylane state write pr-agent '{"status":"completed","progress":100,"prNumber":PR_NUMBER,"prUrl":"PR_URL"}'
    ```
 
 ## 출력

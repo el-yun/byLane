@@ -30,14 +30,11 @@ echo "폴러 PID: $!"
 pending PR이 생길 때마다 respond-agent를 실행한다:
 
 ```bash
-node -e "
-import('./src/state.js').then(({readState}) => {
-  const q = readState('respond-queue', '.bylane/state')
-  const pending = (q?.queue ?? []).filter(p => p.status === 'pending')
-  console.log(JSON.stringify(pending))
-})
-"
+# 큐 확인 (pending 항목 필터링)
+npx @elyun/bylane state read respond-queue
 ```
+
+출력된 JSON에서 `queue` 배열의 `status === "pending"` 항목을 선택한다.
 
 pending 항목이 있으면 각 PR에 대해:
 
@@ -50,17 +47,8 @@ pending 항목이 있으면 각 PR에 대해:
 3. 완료 후 큐 항목을 `status: "responded"`로 업데이트:
 
 ```bash
-node -e "
-import('./src/state.js').then(({readState, writeState}) => {
-  const q = readState('respond-queue', '.bylane/state')
-  const queue = (q?.queue ?? []).map(p =>
-    p.number === PR_NUMBER
-      ? { ...p, status: 'responded', respondedAt: new Date().toISOString() }
-      : p
-  )
-  writeState('respond-queue', { status: 'running', queue }, '.bylane/state')
-})
-"
+# 현재 큐 읽기 후 PR_NUMBER 항목을 responded로 업데이트하여 다시 쓰기
+npx @elyun/bylane state write respond-queue '{"status":"running","queue":UPDATED_QUEUE_JSON}'
 ```
 
 4. 다음 pending 항목으로 반복. pending 없으면 5분 대기 후 재확인 (폴러 주기와 동일).

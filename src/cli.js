@@ -141,6 +141,45 @@ function install() {
 
 if (command === 'install') {
   install()
+} else if (command === 'models') {
+  // models → 에이전트별 모델 목록 출력 (KEY=VALUE 형식)
+  const { loadConfig, getAgentModel } = await import('./config.js')
+  const config = loadConfig()
+  const agents = ['orchestrator','issue-agent','code-agent','test-agent',
+    'commit-agent','pr-agent','review-agent','respond-agent','notify-agent','analyze-agent']
+  agents.forEach(a => console.log(`${a}=${getAgentModel(config, a)}`))
+} else if (command === 'branch') {
+  // branch ISSUE_NUMBER  → 브랜치명 출력
+  const issueNumber = Number(args[1])
+  if (!issueNumber) { console.error('사용법: bylane branch <issueNumber>'); process.exit(1) }
+  const { buildBranchNameFromConfig } = await import('./branch.js')
+  const { loadConfig } = await import('./config.js')
+  console.log(buildBranchNameFromConfig(loadConfig(), issueNumber))
+} else if (command === 'state') {
+  // state write AGENT '{"status":"in_progress",...}'
+  // state append AGENT "메시지"
+  // state read AGENT
+  const subCmd = args[1]
+  const agentName = args[2]
+  const payload = args[3]
+  const { writeState, appendLog, readState } = await import('./state.js')
+
+  if (subCmd === 'write' && agentName && payload) {
+    writeState(agentName, JSON.parse(payload))
+  } else if (subCmd === 'append' && agentName && payload) {
+    appendLog(agentName, payload)
+  } else if (subCmd === 'read' && agentName) {
+    console.log(JSON.stringify(readState(agentName), null, 2))
+  } else {
+    console.error('사용법: bylane state <write|append|read> <agentName> [payload]')
+    process.exit(1)
+  }
+} else if (command === 'cleanup') {
+  const { runCleanup, formatCleanupResult } = await import('./cleanup.js')
+  console.log('\n  byLane 상태 정리 중...\n')
+  const result = runCleanup()
+  console.log(formatCleanupResult(result))
+  console.log('\n  완료.\n')
 } else if (command === 'monitor') {
   // 항상 현재 패키지의 모니터 실행 (버전 일치 보장)
   const monitorPath = join(__dirname, 'monitor', 'index.js')

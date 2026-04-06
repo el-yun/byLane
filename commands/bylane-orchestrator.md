@@ -19,18 +19,10 @@ description: byLane 메인 오케스트레이터. 자연어 의도를 파싱해 
 각 에이전트 실행 전 사용할 모델을 config에서 읽는다:
 
 ```bash
-node -e "
-import('./src/config.js').then(({loadConfig, getAgentModel}) => {
-  const config = loadConfig()
-  const agents = [
-    'orchestrator','issue-agent','code-agent','test-agent',
-    'commit-agent','pr-agent','review-agent','respond-agent','notify-agent'
-  ]
-  agents.forEach(a => console.log(a + ': ' + getAgentModel(config, a)))
-  // analyze-agent는 항상 opus 사용 (config 무관)
-})
-"
+npx @elyun/bylane models
 ```
+
+출력 형식: `AGENT_NAME=MODEL_ID` (한 줄씩)
 
 에이전트 호출 시 해당 모델을 `model` 파라미터로 전달한다.
 
@@ -57,18 +49,7 @@ import('./src/config.js').then(({loadConfig, getAgentModel}) => {
 
 상태 기록 (각 에이전트 시작 전):
 ```bash
-node -e "
-import('./src/state.js').then(({writeState}) => {
-  writeState('AGENT_NAME', {
-    status: 'in_progress',
-    startedAt: new Date().toISOString(),
-    progress: 0,
-    currentTask: 'TASK_DESCRIPTION',
-    retries: 0,
-    log: []
-  })
-})
-"
+npx @elyun/bylane state write AGENT_NAME '{"status":"in_progress","startedAt":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","progress":0,"currentTask":"TASK_DESCRIPTION","retries":0,"log":[]}'
 ```
 
 ## 피드백 루프

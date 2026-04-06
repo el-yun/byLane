@@ -47,30 +47,19 @@ node src/review-loop.js
 아래 루프를 실행하면서 pending PR이 생길 때마다 review-agent를 실행한다:
 
 ```bash
-# 큐 확인
-node -e "
-import('./src/state.js').then(({readState}) => {
-  const q = readState('review-queue', '.bylane/state')
-  const pending = (q?.queue ?? []).filter(p => p.status === 'pending')
-  console.log(JSON.stringify(pending))
-})
-"
+# 큐 확인 (pending 항목 필터링)
+npx @elyun/bylane state read review-queue
 ```
+
+출력된 JSON에서 `queue` 배열의 `status === "pending"` 항목을 선택한다.
 
 pending 항목이 있으면 각 PR에 대해:
 1. `bylane-review-agent` skill 실행 (PR 번호 전달)
 2. 리뷰 완료 후 큐 항목을 `status: "reviewed"`로 업데이트:
 
 ```bash
-node -e "
-import('./src/state.js').then(({readState, writeState}) => {
-  const q = readState('review-queue', '.bylane/state')
-  const queue = (q?.queue ?? []).map(p =>
-    p.number === PR_NUMBER ? { ...p, status: 'reviewed', reviewedAt: new Date().toISOString() } : p
-  )
-  writeState('review-queue', { status: 'running', queue }, '.bylane/state')
-})
-"
+# 현재 큐 읽기 후 PR_NUMBER 항목을 reviewed로 업데이트하여 다시 쓰기
+npx @elyun/bylane state write review-queue '{"status":"running","queue":UPDATED_QUEUE_JSON}'
 ```
 
 3. 다음 pending 항목으로 반복

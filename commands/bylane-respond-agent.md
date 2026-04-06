@@ -64,7 +64,7 @@ ls .github/REVIEW_RESPONSE_TEMPLATE.md \
 ## 실행 전 상태 기록
 
 ```bash
-node -e "import('./src/state.js').then(({writeState})=>writeState('respond-agent',{status:'in_progress',startedAt:new Date().toISOString(),progress:0,retries:0,log:[]}))"
+npx @elyun/bylane state write respond-agent '{"status":"in_progress","startedAt":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","progress":0,"retries":0,"log":[]}'
 ```
 
 ## 실행 흐름

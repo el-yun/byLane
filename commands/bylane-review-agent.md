@@ -69,7 +69,7 @@ Enter 또는 아무것도 선택하지 않으면 → `all` (전체 검사)
 ## 실행 전 상태 기록
 
 ```bash
-node -e "import('./src/state.js').then(({writeState})=>writeState('review-agent',{status:'in_progress',startedAt:new Date().toISOString(),progress:0,retries:0,log:[]}))"
+npx @elyun/bylane state write review-agent '{"status":"in_progress","startedAt":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","progress":0,"retries":0,"log":[]}'
 ```
 
 ## 실행 흐름
@@ -180,7 +180,7 @@ curl -s -X POST \
 ### 5. 상태 업데이트
 
 ```bash
-node -e "import('./src/state.js').then(({writeState})=>writeState('review-agent',{status:'completed',progress:100,approved:APPROVED_BOOL,commentCount:COMMENT_COUNT}))"
+npx @elyun/bylane state write review-agent '{"status":"completed","progress":100,"approved":APPROVED_BOOL,"commentCount":COMMENT_COUNT}'
 ```
 
 ## 출력

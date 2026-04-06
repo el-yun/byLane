@@ -102,7 +102,7 @@ Figma MCP `get_file` 또는 `get_node` 도구로 프레임/컴포넌트 분석.
 
 상태 기록:
 ```bash
-node -e "import('./src/state.js').then(({writeState})=>writeState('issue-agent',{status:'in_progress',startedAt:new Date().toISOString(),progress:0,retries:0}))"
+npx @elyun/bylane state write issue-agent '{"status":"in_progress","startedAt":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","progress":0,"retries":0}'
 ```
 
 ## 수동 실행
