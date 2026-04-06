@@ -74,7 +74,7 @@ import('./src/state.js').then(({readState, writeState}) => {
 ```
 
 3. 다음 pending 항목으로 반복
-4. pending 없으면 30초 대기 후 재확인
+4. pending 없으면 5분 대기 후 재확인 (폴러 주기와 동일)
 
 ## 큐 항목 스키마
 
