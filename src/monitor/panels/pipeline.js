@@ -27,7 +27,7 @@ export function createPipelinePanel(screen) {
   screen.append(box)
 
   return {
-    update(states) {
+    update(states, subagents = { active: [], recent: [] }) {
       const lines = AGENTS.map(name => {
         const s = states[name]
         if (!s) return ` ${STATUS_ICON.idle} ${name.padEnd(16)} 대기`
@@ -40,9 +40,29 @@ export function createPipelinePanel(screen) {
           : ''
         return ` ${icon} ${name.padEnd(16)} ${elapsed.padEnd(6)} ${bar}`
       })
+
       const retries = states['orchestrator']?.retries ?? 0
       const maxRetries = states['orchestrator']?.maxRetries ?? 3
       lines.push('', ` Retries: ${retries}/${maxRetries}`)
+
+      // 하위 에이전트 섹션
+      lines.push('', ' SUBAGENTS')
+      if (subagents.active.length === 0) {
+        lines.push(' 실행 중 없음')
+      } else {
+        for (const a of subagents.active) {
+          const elapsed = `${Math.floor((Date.now() - new Date(a.startedAt)) / 1000)}s`
+          const type = (a.subagentType ?? 'general').padEnd(14)
+          const prompt = a.prompt.length > 28
+            ? a.prompt.slice(0, 28) + '...'
+            : a.prompt.padEnd(31)
+          lines.push(` [>] ${type} ${elapsed.padEnd(6)} ${prompt}`)
+        }
+      }
+      if (subagents.recent.length > 0) {
+        lines.push(` 최근 완료: ${subagents.recent.length}건`)
+      }
+
       box.setContent(lines.join('\n'))
       screen.render()
     }

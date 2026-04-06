@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { cpSync, mkdirSync, symlinkSync, existsSync, readdirSync, copyFileSync, renameSync, readFileSync } from 'fs'
+import { mkdirSync, symlinkSync, existsSync, readdirSync, copyFileSync, renameSync, readFileSync, writeFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { homedir } from 'os'
@@ -13,8 +13,8 @@ const command = args[0] || 'install'
 const useSymlink = args.includes('--symlink')
 
 const TARGETS = [
-  { src: join(ROOT, 'commands'), dest: join(CLAUDE_DIR, 'commands'),  label: 'Commands' },
-  { src: join(ROOT, 'hooks'),    dest: join(CLAUDE_DIR, 'hooks'),     label: 'Hooks' },
+  { src: join(ROOT, 'commands'), dest: join(CLAUDE_DIR, 'commands'), label: 'Commands' },
+  { src: join(ROOT, 'hooks'),    dest: join(CLAUDE_DIR, 'hooks'),    label: 'Hooks' },
 ]
 
 function backupAndCopy(src, dest, file, label) {
@@ -36,6 +36,49 @@ function backupAndCopy(src, dest, file, label) {
     copyFileSync(srcFile, destFile)
     console.log(`  + ${label}: ${file}`)
   }
+}
+
+function registerHooks() {
+  const settingsPath = join(CLAUDE_DIR, 'settings.json')
+  let settings = {}
+  if (existsSync(settingsPath)) {
+    try { settings = JSON.parse(readFileSync(settingsPath, 'utf8')) } catch {}
+  }
+
+  const hookScript = join(CLAUDE_DIR, 'hooks', 'bylane-agent-tracker.js')
+  settings.hooks = settings.hooks ?? {}
+
+  // PreToolUse
+  settings.hooks.PreToolUse = settings.hooks.PreToolUse ?? []
+  const preExists = settings.hooks.PreToolUse.some(h =>
+    h.hooks?.some(hh => hh.command?.includes('bylane-agent-tracker'))
+  )
+  if (!preExists) {
+    settings.hooks.PreToolUse.push({
+      matcher: 'Agent',
+      hooks: [{ type: 'command', command: `node ${hookScript} pre` }]
+    })
+    console.log('  + Hook: PreToolUse/Agent → bylane-agent-tracker')
+  } else {
+    console.log('  = Hook: PreToolUse/Agent (이미 등록됨)')
+  }
+
+  // PostToolUse
+  settings.hooks.PostToolUse = settings.hooks.PostToolUse ?? []
+  const postExists = settings.hooks.PostToolUse.some(h =>
+    h.hooks?.some(hh => hh.command?.includes('bylane-agent-tracker'))
+  )
+  if (!postExists) {
+    settings.hooks.PostToolUse.push({
+      matcher: 'Agent',
+      hooks: [{ type: 'command', command: `node ${hookScript} post` }]
+    })
+    console.log('  + Hook: PostToolUse/Agent → bylane-agent-tracker')
+  } else {
+    console.log('  = Hook: PostToolUse/Agent (이미 등록됨)')
+  }
+
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2))
 }
 
 function install() {
@@ -62,6 +105,9 @@ function install() {
       }
     }
   }
+
+  console.log('')
+  registerHooks()
 
   console.log(`
   byLane 설치 완료!
