@@ -8,9 +8,10 @@ import { execSync } from 'child_process'
 import { mkdirSync } from 'fs'
 import { writeState, readState, appendLog } from './state.js'
 import { loadConfig } from './config.js'
-import { killExistingLoop } from './loop-utils.js'
+import { killExistingLoop, createAbsoluteTimer } from './loop-utils.js'
 
-const INTERVAL_MS = 5 * 60 * 1000
+const config = loadConfig()
+const INTERVAL_MS = config.loop?.intervalMs ?? 300000
 const STATE_DIR = '.bylane/state'
 
 mkdirSync(STATE_DIR, { recursive: true })
@@ -173,20 +174,17 @@ async function poll() {
 // 초기 실행
 poll()
 
-// 5분 주기 폴링
-const timer = setInterval(poll, INTERVAL_MS)
+// 절대 시간 기반 폴링 (잠자기 모드 후 즉시 보정)
+const { stop } = createAbsoluteTimer(poll, INTERVAL_MS)
 
 // 종료 처리
-process.on('SIGINT', () => {
-  clearInterval(timer)
+function shutdown() {
+  stop()
   writeState('respond-loop', { status: 'stopped' }, STATE_DIR)
   process.exit(0)
-})
-process.on('SIGTERM', () => {
-  clearInterval(timer)
-  writeState('respond-loop', { status: 'stopped' }, STATE_DIR)
-  process.exit(0)
-})
+}
+process.on('SIGINT', shutdown)
+process.on('SIGTERM', shutdown)
 
 writeState('respond-loop', { status: 'running', startedAt: new Date().toISOString(), pid: process.pid }, STATE_DIR)
 console.log('respond-loop 시작. Ctrl+C로 종료.')

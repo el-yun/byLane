@@ -40,6 +40,10 @@ export const DEFAULT_CONFIG = {
     owner: '',
     repo: ''
   },
+  memory: {
+    enabled: true,
+    dir: '.bylane/memory'
+  },
   models: {
     default: 'claude-sonnet-4-6',
     orchestrator: 'claude-opus-4-6',
@@ -52,6 +56,11 @@ export const DEFAULT_CONFIG = {
     'respond-agent': 'claude-opus-4-6',
     'notify-agent': 'claude-haiku-4-5-20251001',
     'analyze-agent': 'claude-opus-4-6'
+  },
+  loop: {
+    mode: 'tmux',
+    intervalMs: 300000,
+    sessionName: 'bylane-loops'
   },
   review: {
     model: 'claude-sonnet-4-6',

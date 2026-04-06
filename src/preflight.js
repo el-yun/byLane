@@ -17,6 +17,12 @@ function run(cmd) {
   }
 }
 
+export function checkTmux() {
+  const which = run('which tmux')
+  if (!which.ok) return { ok: false, reason: 'tmux 미설치 — loop을 process 모드로 실행합니다', fix: 'brew install tmux  # 또는 https://github.com/tmux/tmux' }
+  return { ok: true, detail: which.out }
+}
+
 function checkGhCli() {
   const which = run('which gh')
   if (!which.ok) return { ok: false, reason: 'gh CLI 미설치', fix: 'brew install gh  # 또는 https://cli.github.com' }
@@ -105,14 +111,20 @@ export function runPreflight() {
     }
   }
 
-  // 3. 알림 채널 (설정된 경우만)
+  // 3. tmux (loop.mode가 tmux인 경우)
+  if (config.loop?.mode === 'tmux') {
+    const tmux = checkTmux()
+    results.push({ name: 'tmux', ...tmux, warn: !tmux.ok })
+  }
+
+  // 4. 알림 채널 (설정된 경우만)
   const slack = checkSlack(config)
   if (slack) results.push({ name: 'Slack 알림', ...slack })
 
   const telegram = checkTelegram(config)
   if (telegram) results.push({ name: 'Telegram 알림', ...telegram })
 
-  const passed = results.every(r => r.ok)
+  const passed = results.filter(r => !r.warn).every(r => r.ok)
   return { passed, results }
 }
 

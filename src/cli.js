@@ -185,6 +185,107 @@ if (command === 'install') {
   const result = runCleanup()
   console.log(formatCleanupResult(result))
   console.log('\n  완료.\n')
+} else if (command === 'memory') {
+  // memory read ISSUE_NUMBER
+  // memory append ISSUE_NUMBER AGENT_NAME "content"
+  // memory list
+  const subCmd = args[1]
+  const { loadConfig } = await import('./config.js')
+  const { readIssueMemory, appendIssueMemory, listIssueMemories } = await import('./memory.js')
+  const config = loadConfig()
+
+  if (subCmd === 'read') {
+    const issueNumber = args[2]
+    if (!issueNumber) { console.error('사용법: bylane memory read <issueNumber>'); process.exit(1) }
+    const content = readIssueMemory(issueNumber, config)
+    console.log(content ?? '(메모리 없음)')
+  } else if (subCmd === 'append') {
+    const issueNumber = args[2]
+    const agentName = args[3]
+    const content = args[4]
+    if (!issueNumber || !agentName || !content) {
+      console.error('사용법: bylane memory append <issueNumber> <agentName> "content"')
+      process.exit(1)
+    }
+    appendIssueMemory(issueNumber, agentName, content, config)
+    console.log(`  + Issue #${issueNumber} 메모리 기록 완료`)
+  } else if (subCmd === 'list') {
+    const issues = listIssueMemories(config)
+    if (issues.length === 0) {
+      console.log('  (기록된 이슈 메모리 없음)')
+    } else {
+      console.log('  기록된 이슈 메모리:')
+      issues.forEach(n => console.log(`  - Issue #${n}`))
+    }
+  } else {
+    console.error('사용법: bylane memory <read|append|list> [issueNumber] [agentName] [content]')
+    process.exit(1)
+  }
+} else if (command === 'loop') {
+  const subCmd = args[1] || 'start'
+  const { resolveLoopMode, startTmuxLoops, stopTmuxLoops, isTmuxSessionAlive } = await import('./loop-utils.js')
+  const { loadConfig } = await import('./config.js')
+  const config = loadConfig()
+  const sessionName = config.loop?.sessionName ?? 'bylane-loops'
+
+  if (subCmd === 'start') {
+    const mode = resolveLoopMode()
+
+    if (mode === 'tmux') {
+      startTmuxLoops(sessionName)
+      console.log(`\n  tmux 세션에 접속하려면: tmux attach -t ${sessionName}\n`)
+    } else {
+      // process 모드: 현재 프로세스에서 직접 실행
+      console.log('\n  process 모드: review-loop + respond-loop 실행\n')
+      const { spawn } = await import('child_process')
+      const review = spawn(process.execPath, ['src/review-loop.js'], { stdio: 'inherit', detached: false })
+      const respond = spawn(process.execPath, ['src/respond-loop.js'], { stdio: 'inherit', detached: false })
+
+      function shutdownAll() {
+        review.kill('SIGTERM')
+        respond.kill('SIGTERM')
+        process.exit(0)
+      }
+      process.on('SIGINT', shutdownAll)
+      process.on('SIGTERM', shutdownAll)
+
+      // 자식 프로세스가 모두 종료되면 부모도 종료
+      let exited = 0
+      const onExit = () => { if (++exited >= 2) process.exit(0) }
+      review.on('exit', onExit)
+      respond.on('exit', onExit)
+    }
+  } else if (subCmd === 'stop') {
+    const mode = resolveLoopMode()
+    if (mode === 'tmux') {
+      stopTmuxLoops(sessionName)
+    } else {
+      // process 모드: state에서 PID를 읽어 종료
+      const { readState } = await import('./state.js')
+      for (const loopName of ['review-loop', 'respond-loop']) {
+        const state = readState(loopName)
+        if (state?.pid) {
+          try {
+            process.kill(state.pid, 'SIGTERM')
+            console.log(`  ${loopName} (PID: ${state.pid}) 종료`)
+          } catch {
+            console.log(`  ${loopName} (PID: ${state.pid}) 이미 종료됨`)
+          }
+        }
+      }
+    }
+  } else if (subCmd === 'status') {
+    const alive = isTmuxSessionAlive(sessionName)
+    const { readState } = await import('./state.js')
+    const reviewState = readState('review-loop')
+    const respondState = readState('respond-loop')
+    console.log(`\n  tmux 세션 (${sessionName}): ${alive ? '실행 중' : '없음'}`)
+    console.log(`  review-loop: ${reviewState?.status ?? 'unknown'}`)
+    console.log(`  respond-loop: ${respondState?.status ?? 'unknown'}\n`)
+  } else {
+    console.error('사용법: bylane loop <start|stop|status>')
+    process.exit(1)
+  }
 } else if (command === 'monitor') {
   // 항상 현재 패키지의 모니터 실행 (버전 일치 보장)
   const monitorPath = join(__dirname, 'monitor', 'index.js')
@@ -193,6 +294,6 @@ if (command === 'install') {
   child.on('exit', code => process.exit(code ?? 0))
 } else {
   console.error(`알 수 없는 명령: ${command}`)
-  console.error('사용법: npx @elyun/bylane [install|monitor] [--symlink]')
+  console.error('사용법: npx @elyun/bylane [install|loop|monitor|preflight|state|memory|cleanup] [--symlink]')
   process.exit(1)
 }

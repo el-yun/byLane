@@ -21,6 +21,15 @@ node -e "import('./src/state.js').then(({writeState})=>writeState('code-agent',{
 
 # 에이전트별 모델 확인
 node -e "import('./src/config.js').then(({loadConfig,getAgentModel})=>{const c=loadConfig();['orchestrator','code-agent','review-agent'].forEach(a=>console.log(a,getAgentModel(c,a)))})"
+
+# Loop 관리
+npx @elyun/bylane loop start   # review-loop + respond-loop 시작 (tmux 또는 process)
+npx @elyun/bylane loop stop    # loop 종료
+npx @elyun/bylane loop status  # 실행 상태 확인
+
+# issueMemory 확인
+npx @elyun/bylane memory list
+npx @elyun/bylane memory read 123
 ```
 
 ## 아키텍처
@@ -28,9 +37,11 @@ node -e "import('./src/config.js').then(({loadConfig,getAgentModel})=>{const c=l
 - `src/state.js` — `.bylane/state/*.json` 읽기/쓰기 유틸 (writeState, readState, clearState, listStates, appendLog)
 - `src/config.js` — `.bylane/bylane.json` 로드/저장/검증 (loadConfig, saveConfig, validateConfig, getAgentModel, DEFAULT_CONFIG)
 - `src/branch.js` — 브랜치명 패턴 엔진 (buildBranchName, buildBranchNameFromConfig)
-- `src/cli.js` — npx 설치 CLI (install, --symlink 옵션, 기존 파일 .bak 백업)
-- `src/review-loop.js` — 5분 주기 review 요청 PR 폴러 → `.bylane/state/review-queue.json`
-- `src/respond-loop.js` — 5분 주기 내 PR 리뷰/코멘트 폴러 → `.bylane/state/respond-queue.json`
+- `src/memory.js` — 이슈별 컨텍스트 메모리 유틸 (readIssueMemory, appendIssueMemory, listIssueMemories)
+- `src/cli.js` — npx 설치 CLI (install, loop, --symlink 옵션, 기존 파일 .bak 백업)
+- `src/loop-utils.js` — 루프 공통 유틸 (killExistingLoop, tmux 세션 관리, createAbsoluteTimer, resolveLoopMode)
+- `src/review-loop.js` — review 요청 PR 폴러 → `.bylane/state/review-queue.json` (절대시간 기반 폴링)
+- `src/respond-loop.js` — 내 PR 리뷰/코멘트 폴러 → `.bylane/state/respond-queue.json` (절대시간 기반 폴링)
 - `src/monitor/` — blessed 기반 TUI 대시보드 (2열 그리드, 1초 폴링, fullUnicode)
 - `skills/` — Claude Code 에이전트 skill 파일들
 - `hooks/` — 외부 이벤트 자동 감지 훅
@@ -46,11 +57,30 @@ orchestrator → issue-agent → code-agent → test-agent → commit-agent
             → pr-agent → review-agent → respond-agent → notify-agent
 
 analyze-agent (독립: 프로젝트 분석 → .claude/instructions/ 생성)
-review-loop   (독립: 5분 주기 review 요청 감지)
-respond-loop  (독립: 5분 주기 리뷰 코멘트 감지)
+review-loop   (독립: 설정 주기로 review 요청 감지, 절대시간 기반 폴링)
+respond-loop  (독립: 설정 주기로 리뷰 코멘트 감지, 절대시간 기반 폴링)
 ```
 
 각 에이전트는 `.bylane/state/{name}.json`에 상태 기록. 모니터가 1초마다 폴링.
+
+## Loop 실행
+
+`bylane loop start` / `bylane loop stop` / `bylane loop status`
+
+두 가지 모드 (`config.loop.mode`):
+
+| 모드 | 설명 | 해결하는 문제 |
+|------|------|-------------|
+| `tmux` (기본) | tmux 세션에서 백그라운드 실행 | 터미널 종료, SSH 끊김 시 프로세스 유지 |
+| `process` | 현재 프로세스에서 직접 실행 | tmux 미설치 환경 대응 |
+
+두 모드 모두 **절대시간 기반 폴링** 사용:
+- 10초마다 "마지막 폴링 후 intervalMs 경과 여부" 체크
+- macOS 잠자기 모드 동안은 CPU 정지로 실행 불가 (OS 제약)
+- 잠자기 해제 직후 경과 시간 감지 → 즉시 폴링 실행
+- preflight에서 tmux 미설치 감지 시 자동으로 process 모드 fallback
+
+설정: `config.loop.intervalMs` (기본 300000 = 5분), `config.loop.sessionName` (기본 `bylane-loops`)
 
 ## 상태 파일 스키마
 
@@ -92,6 +122,8 @@ tests/
 ## 주의사항
 
 - `.bylane/state/`는 .gitignore로 제외됨 (런타임 상태)
+- `.bylane/memory/`는 .gitignore로 제외됨 (issueMemory 로컬 파일)
 - `.bylane/bylane.json`은 추적됨 (프로젝트 설정)
 - `docs/`는 .gitignore로 제외됨 (내부 설계 문서)
 - pre-commit 훅: `npm install` 시 자동 등록 (`prepare` 스크립트)
+- issueMemory: 루프 비활성 시 로컬 파일, 루프 실행 중 GitHub 이슈 코멘트로 기록

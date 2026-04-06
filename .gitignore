@@ -1,5 +1,6 @@
 .omc
 node_modules/
 .bylane/state/
+.bylane/memory/
 *.log
 docs/
