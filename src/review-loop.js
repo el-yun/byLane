@@ -133,5 +133,5 @@ process.on('SIGTERM', () => {
   process.exit(0)
 })
 
-writeState('review-loop', { status: 'running', startedAt: new Date().toISOString() }, STATE_DIR)
+writeState('review-loop', { status: 'running', startedAt: new Date().toISOString(), pid: process.pid }, STATE_DIR)
 console.log('review-loop 시작. Ctrl+C로 종료.')
