@@ -1,6 +1,6 @@
 {
   "name": "@elyun/bylane",
-  "version": "1.28.0",
+  "version": "1.29.0",
   "description": "Frontend development harness for Claude Code",
   "type": "module",
   "bin": {
