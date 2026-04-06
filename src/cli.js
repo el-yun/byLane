@@ -256,32 +256,44 @@ if (command === 'install') {
       respond.on('exit', onExit)
     }
   } else if (subCmd === 'stop') {
-    const mode = resolveLoopMode()
-    if (mode === 'tmux') {
+    let stopped = false
+
+    // 1) tmux 세션 종료 시도 (모드 무관)
+    if (isTmuxSessionAlive(sessionName)) {
       stopTmuxLoops(sessionName)
-    } else {
-      // process 모드: state에서 PID를 읽어 종료
-      const { readState } = await import('./state.js')
-      for (const loopName of ['review-loop', 'respond-loop']) {
-        const state = readState(loopName)
-        if (state?.pid) {
-          try {
-            process.kill(state.pid, 'SIGTERM')
-            console.log(`  ${loopName} (PID: ${state.pid}) 종료`)
-          } catch {
-            console.log(`  ${loopName} (PID: ${state.pid}) 이미 종료됨`)
-          }
-        }
+      stopped = true
+    }
+
+    // 2) process 모드 PID 종료 시도 (모드 무관)
+    const { readState, writeState } = await import('./state.js')
+    for (const loopName of ['review-loop', 'respond-loop']) {
+      const state = readState(loopName)
+      if (!state?.pid) continue
+      const pid = Number(state.pid)
+      try {
+        process.kill(pid, 0) // PID 살아있는지 확인
+        process.kill(pid, 'SIGTERM')
+        writeState(loopName, { ...state, status: 'stopped', stoppedAt: new Date().toISOString() })
+        console.log(`  ${loopName} (PID: ${pid}) 종료`)
+        stopped = true
+      } catch {
+        console.log(`  ${loopName} (PID: ${pid}) 이미 종료됨`)
       }
+    }
+
+    if (!stopped) {
+      console.log('  실행 중인 루프가 없습니다.')
     }
   } else if (subCmd === 'status') {
     const alive = isTmuxSessionAlive(sessionName)
     const { readState } = await import('./state.js')
     const reviewState = readState('review-loop')
     const respondState = readState('respond-loop')
-    console.log(`\n  tmux 세션 (${sessionName}): ${alive ? '실행 중' : '없음'}`)
-    console.log(`  review-loop: ${reviewState?.status ?? 'unknown'}`)
-    console.log(`  respond-loop: ${respondState?.status ?? 'unknown'}\n`)
+    const mode = resolveLoopMode()
+    console.log(`\n  모드: ${mode}`)
+    console.log(`  tmux 세션 (${sessionName}): ${alive ? '실행 중' : '없음'}`)
+    console.log(`  review-loop: ${reviewState?.status ?? 'unknown'}${reviewState?.pid ? ` (PID: ${reviewState.pid})` : ''}`)
+    console.log(`  respond-loop: ${respondState?.status ?? 'unknown'}${respondState?.pid ? ` (PID: ${respondState.pid})` : ''}\n`)
   } else {
     console.error('사용법: bylane loop <start|stop|status>')
     process.exit(1)
