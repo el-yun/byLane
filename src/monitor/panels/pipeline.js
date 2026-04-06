@@ -5,7 +5,8 @@ const AGENTS = [
   'commit-agent', 'pr-agent', 'review-agent', 'respond-agent', 'notify-agent'
 ]
 
-const LOOPS = ['review-loop', 'respond-loop']
+// 루프는 상태 파일에서 동적으로 감지 (-loop 접미사)
+const KNOWN_LOOPS = ['review-loop', 'respond-loop']
 
 const STATUS_ICON = {
   idle:        '[ ]',
@@ -49,9 +50,11 @@ export function createPipelinePanel(screen) {
       const maxRetries = states['orchestrator']?.maxRetries ?? 3
       lines.push('', ` Retries: ${retries}/${maxRetries}`)
 
-      // 루프 프로세스 섹션
+      // 루프 프로세스 섹션 — 상태 파일에서 *-loop 동적 감지 + KNOWN_LOOPS 항상 표시
+      const activeLoopNames = Object.keys(states).filter(n => n.endsWith('-loop'))
+      const allLoops = [...new Set([...KNOWN_LOOPS, ...activeLoopNames])]
       lines.push('', ' LOOPS')
-      for (const name of LOOPS) {
+      for (const name of allLoops) {
         const s = states[name]
         if (!s) {
           lines.push(` [-] ${name.padEnd(16)} 미실행`)
