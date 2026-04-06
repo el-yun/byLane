@@ -67,6 +67,7 @@ export const DEFAULT_CONFIG = {
     language: 'ko',
     includeModel: true,
     includeCodeExample: true,
+    autoApprove: false,
     templateFile: '',
     severityEmoji: {
       CRITICAL: '[CRITICAL]',
@@ -74,7 +75,7 @@ export const DEFAULT_CONFIG = {
       MEDIUM: '[MEDIUM]',
       LOW: '[LOW]'
     },
-    footer: 'Reviewed by byLane · model: {model}'
+    footer: '🤖 {model} · {date}'
   }
 }
 

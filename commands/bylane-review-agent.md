@@ -158,7 +158,16 @@ curl -s -X POST \
   }'
 ```
 
-`event` 값: 지적사항이 있으면 `"REQUEST_CHANGES"`, 없으면 `"APPROVE"`, 코멘트만이면 `"COMMENT"`
+`event` 값 결정:
+
+| 조건 | `review.autoApprove` | event |
+|------|---------------------|-------|
+| 지적사항 있음 | 무관 | `"REQUEST_CHANGES"` |
+| 지적사항 없음 | `true` | `"APPROVE"` |
+| 지적사항 없음 | `false` (기본) | `"COMMENT"` — 사람이 직접 Approve 판단 |
+| 코멘트만 | 무관 | `"COMMENT"` |
+
+`review.autoApprove`가 `false`(기본값)이면 AI가 Approve를 내리지 않고 코멘트만 남긴다.
 
 ### 4. 전체 요약 (PR 전체 코멘트)
 
@@ -175,7 +184,7 @@ curl -s -X POST \
 ```
 
 푸터: `review.footer`의 `{model}`을 실제 모델명으로, `{date}`를 현재 날짜로 치환.
-기본 푸터: `{model} · {date}`  (bylane 문구 없음)
+기본 푸터: `🤖 {model} · {date}`  — 모델명 앞에 🤖 이모지로 AI 리뷰임을 표시
 
 ### 5. 상태 업데이트
 
