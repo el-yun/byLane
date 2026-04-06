@@ -16,24 +16,30 @@ export function createLogPanel(screen) {
     vi: true
   })
   screen.append(box)
+
   const lines = []
+  const seen = new Set()
 
   return {
     update(states) {
-      const newLines = []
+      let changed = false
       for (const state of Object.values(states)) {
-        for (const entry of (state.log ?? []).slice(-5)) {
+        for (const entry of (state.log ?? [])) {
+          const key = `${state.agent}:${entry.ts}`
+          if (seen.has(key)) continue
+          seen.add(key)
           const ts = new Date(entry.ts).toLocaleTimeString('ko-KR', { hour12: false })
-          newLines.push(` ${ts} {cyan-fg}${state.agent}{/cyan-fg}`)
-          newLines.push(`   > ${entry.msg}`)
+          lines.push(` ${ts} {cyan-fg}${state.agent}{/cyan-fg}`)
+          lines.push(`   > ${entry.msg}`)
+          changed = true
         }
       }
-      const all = [...lines, ...newLines].slice(-50)
-      lines.length = 0
-      lines.push(...all)
-      box.setContent(lines.join('\n'))
-      box.scrollTo(lines.length)
-      screen.render()
+      if (changed) {
+        if (lines.length > 200) lines.splice(0, lines.length - 200)
+        box.setContent(lines.join('\n'))
+        box.scrollTo(lines.length)
+        screen.render()
+      }
     }
   }
 }
