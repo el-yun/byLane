@@ -31,6 +31,41 @@ npx @elyun/bylane models
 
 ---
 
+## 파이프라인 상태 추적
+
+각 에이전트 호출 전후에 파이프라인 상태를 기록하여, 세션 종료나 에이전트 실패 시 자동 정리가 가능하게 한다.
+
+### 파이프라인 시작 (에이전트 호출 전)
+
+```bash
+npx @elyun/bylane state write pipeline '{"status":"in_progress","pipelineType":"A","issueNumber":null,"startedAt":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","currentStep":"issue-agent","steps":[{"agent":"issue-agent","status":"pending"},{"agent":"code-agent","status":"pending"},{"agent":"test-agent","status":"pending"},{"agent":"commit-agent","status":"pending"},{"agent":"pr-agent","status":"pending"},{"agent":"review-agent","status":"pending"},{"agent":"notify-agent","status":"pending"}]}'
+```
+
+### 각 에이전트 시작/완료 시
+
+```bash
+# 에이전트 시작 시 — 해당 step을 in_progress로
+npx @elyun/bylane state write pipeline '현재 pipeline state에서 해당 step.status를 "in_progress"로 변경'
+
+# 에이전트 완료 시 — 해당 step을 completed로, currentStep을 다음 단계로
+npx @elyun/bylane state write pipeline '현재 pipeline state에서 해당 step.status를 "completed"로 변경, currentStep 갱신'
+```
+
+### 파이프라인 완료/실패 시
+
+```bash
+# 성공
+npx @elyun/bylane state write pipeline '{"status":"completed","completedAt":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",...}'
+
+# 실패 (maxRetries 초과 등)
+npx @elyun/bylane state write pipeline '{"status":"failed","failedAt":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","reason":"...",...}'
+```
+
+> **중요**: 파이프라인 상태가 30분간 업데이트되지 않으면 cleanup이 자동으로 cascade cancel한다.
+> 세션 종료 시 Stop 훅이 in_progress 파이프라인과 하위 에이전트를 즉시 cancelled로 전환한다.
+
+---
+
 ## 의도 파싱 규칙
 
 ### 파이프라인 A — 새 기능 / 이슈 없는 구현 요청
@@ -94,9 +129,13 @@ npx @elyun/bylane models
 
 ### 각 에이전트 호출 방법
 
-Agent 도구에 아래 형식으로 전달한다:
+Agent 도구에 아래 형식으로 전달한다. **호출 전후로 파이프라인 상태를 갱신**한다:
 
 ```
+# 1. 호출 전: 파이프라인 step을 in_progress로 갱신
+npx @elyun/bylane state write pipeline '{...현재 state에서 해당 step.status → "in_progress"}'
+
+# 2. Agent 도구 호출
 subagent_type: "general-purpose"
 model: {models 명령으로 확인한 해당 에이전트 모델}
 prompt: |
@@ -109,6 +148,9 @@ prompt: |
 
   스킬 완료 후 .bylane/state/{에이전트명}.json 에 결과가 기록된다.
   결과 파일의 status, 핵심 출력 필드만 응답으로 돌려줘.
+
+# 3. 호출 후: 파이프라인 step을 completed/failed로 갱신, currentStep을 다음 에이전트로
+npx @elyun/bylane state write pipeline '{...현재 state에서 해당 step.status → "completed", currentStep → 다음}'
 ```
 
 ---

@@ -25,11 +25,16 @@ npx @elyun/bylane cleanup
 
 | 항목 | 동작 |
 |------|------|
+| stale 파이프라인 | 30분 초과 파이프라인 cascade cancel (하위 에이전트 일괄 취소) |
+| upstream 실패 | 파이프라인 내 실패 에이전트 하류 → `blocked` 처리 |
 | `.bylane/state/` 권한 | 디렉토리 755, 파일 644로 수정 |
 | 죽은 루프 프로세스 | PID 확인 → 없으면 `stopped`로 전환 |
 | 30분 초과 `in_progress` | `failed`로 초기화 |
 | `subagents.json` active | PID 없는 항목 제거 |
 | 큐의 `reviewing`/`responding` | `pending`으로 복구 (재처리 대기) |
+| 큐 TTL 초과 pending | 24시간 초과 → `expired` 전환 |
+| 큐 GC | resolved/expired 후 1시간 경과 항목 제거 |
+| 루프-큐 상태 동기화 | 루프 미실행 시 큐 `stopped` 전환 |
 
 ## 완료
 

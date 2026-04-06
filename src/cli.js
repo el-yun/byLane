@@ -49,11 +49,14 @@ function registerHooks() {
   }
 
   const hookScript = join(CLAUDE_DIR, 'hooks', 'bylane-agent-tracker.js')
+  const cleanupHookScript = join(CLAUDE_DIR, 'hooks', 'bylane-session-cleanup.js')
   settings.hooks = settings.hooks ?? {}
 
   // 기존 bylane 훅 제거 후 재등록 (버전 업 시 경로 변경 대응)
   const stripBylane = (arr) =>
-    (arr ?? []).filter(h => !h.hooks?.some(hh => hh.command?.includes('bylane-agent-tracker')))
+    (arr ?? []).filter(h => !h.hooks?.some(hh =>
+      hh.command?.includes('bylane-agent-tracker') || hh.command?.includes('bylane-session-cleanup')
+    ))
 
   settings.hooks.PreToolUse = [
     ...stripBylane(settings.hooks.PreToolUse),
@@ -63,9 +66,14 @@ function registerHooks() {
     ...stripBylane(settings.hooks.PostToolUse),
     { matcher: 'Agent', hooks: [{ type: 'command', command: `node ${hookScript} post` }] }
   ]
+  settings.hooks.Stop = [
+    ...stripBylane(settings.hooks.Stop),
+    { matcher: '', hooks: [{ type: 'command', command: `node ${cleanupHookScript}` }] }
+  ]
 
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2))
-  console.log('  ~ Hook: bylane-agent-tracker 등록 (최신 경로로 갱신)')
+  console.log('  ~ Hook: bylane-agent-tracker 등록 (PreToolUse + PostToolUse)')
+  console.log('  ~ Hook: bylane-session-cleanup 등록 (Stop — 세션 종료 시 상태 정리)')
 }
 
 function preservedConfigs() {
@@ -158,10 +166,13 @@ function uninstall() {
     try {
       const settings = JSON.parse(readFileSync(settingsPath, 'utf8'))
       const stripBylane = (arr) =>
-        (arr ?? []).filter(h => !h.hooks?.some(hh => hh.command?.includes('bylane-agent-tracker')))
+        (arr ?? []).filter(h => !h.hooks?.some(hh =>
+          hh.command?.includes('bylane-agent-tracker') || hh.command?.includes('bylane-session-cleanup')
+        ))
       settings.hooks = settings.hooks ?? {}
       settings.hooks.PreToolUse = stripBylane(settings.hooks.PreToolUse)
       settings.hooks.PostToolUse = stripBylane(settings.hooks.PostToolUse)
+      settings.hooks.Stop = stripBylane(settings.hooks.Stop)
       writeFileSync(settingsPath, JSON.stringify(settings, null, 2))
       console.log('  - Hook: bylane-agent-tracker 제거')
     } catch {}
@@ -267,6 +278,10 @@ if (command === 'install') {
   const sessionName = config.loop?.sessionName ?? 'bylane-loops'
 
   if (subCmd === 'start') {
+    // 시작 전 상태 정리
+    const { runCleanup } = await import('./cleanup.js')
+    runCleanup()
+
     const mode = resolveLoopMode()
 
     if (mode === 'tmux') {
@@ -329,6 +344,10 @@ if (command === 'install') {
         console.log(`  수동 종료: kill -9 ${pid}`)
       }
     }
+
+    // 종료 후 상태 정리 (큐 상태 동기화 포함)
+    const { runCleanup } = await import('./cleanup.js')
+    runCleanup()
 
     if (!stopped) {
       console.log('  실행 중인 루프가 없습니다.')

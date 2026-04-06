@@ -6,6 +6,8 @@
 import { readdirSync, chmodSync, existsSync, unlinkSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { readState, writeState } from './state.js'
+import { gcQueue, expireStaleItems } from './queue-utils.js'
+import { cancelStalePipeline, blockDownstreamOfFailed } from './pipeline.js'
 
 const STATE_DIR = '.bylane/state'
 const STALE_MS = 30 * 60 * 1000   // 30분 이상 in_progress → 초기화
@@ -73,6 +75,18 @@ export function runCleanup() {
     return result
   }
 
+  // 0. 파이프라인 cascade cancel — stale 파이프라인 감지 시 하위 에이전트 일괄 취소
+  const stalePipeline = cancelStalePipeline()
+  if (stalePipeline.pipelineCancelled) {
+    result.reset.push(`pipeline: stale → cancelled (${stalePipeline.cancelled.length}개 에이전트 취소: ${stalePipeline.cancelled.join(', ')})`)
+  }
+
+  // 0-1. 파이프라인 내 실패 에이전트 하류 → blocked
+  const downstream = blockDownstreamOfFailed()
+  if (downstream.blocked.length > 0) {
+    result.reset.push(`pipeline: upstream 실패 → ${downstream.blocked.length}개 에이전트 blocked (${downstream.blocked.join(', ')})`)
+  }
+
   // 1. 파일 권한 수정
   result.fixed.push(...fixPermissions())
 
@@ -82,8 +96,8 @@ export function runCleanup() {
   for (const file of files) {
     const name = file.replace('.json', '')
 
-    // 특수 파일 건너뜀
-    if (name === 'cancel') continue
+    // 특수 파일 건너뜀 (pipeline은 pipeline.js에서 별도 처리)
+    if (name === 'cancel' || name === 'pipeline') continue
 
     // subagents 별도 처리
     if (name === 'subagents') {
@@ -115,17 +129,53 @@ export function runCleanup() {
       }
     }
 
-    // 큐 파일: responding/reviewing 상태가 남아있으면 pending으로 복구
+    // 큐 파일 종합 정리
     if ((name === 'review-queue' || name === 'respond-queue') && Array.isArray(state.queue)) {
-      const fixed = state.queue.map(item =>
+      let queue = state.queue
+      let changed = false
+
+      // 1) responding/reviewing 상태 → pending 복구
+      const recovered = queue.map(item =>
         item.status === 'reviewing' || item.status === 'responding'
           ? { ...item, status: 'pending', recoveredAt: new Date().toISOString() }
           : item
       )
-      const changedCount = fixed.filter((item, i) => item.status !== state.queue[i].status).length
-      if (changedCount > 0) {
-        writeState(name, { ...state, queue: fixed }, STATE_DIR)
-        result.reset.push(`${name}: ${changedCount}개 진행중 항목 → pending 복구`)
+      const recoveredCount = recovered.filter((item, i) => item.status !== queue[i].status).length
+      if (recoveredCount > 0) {
+        queue = recovered
+        changed = true
+        result.reset.push(`${name}: ${recoveredCount}개 진행중 항목 → pending 복구`)
+      }
+
+      // 2) stale pending → expired (TTL 초과)
+      const expired = expireStaleItems(queue)
+      if (expired.expiredCount > 0) {
+        queue = expired.queue
+        changed = true
+        result.reset.push(`${name}: ${expired.expiredCount}개 pending 항목 → expired (TTL 초과)`)
+      }
+
+      // 3) resolved/expired 항목 GC (1시간 경과)
+      const gc = gcQueue(queue)
+      if (gc.removedCount > 0) {
+        queue = gc.queue
+        changed = true
+        result.cleared.push(`${name}: ${gc.removedCount}개 완료/만료 항목 GC 제거`)
+      }
+
+      // 4) 루프-큐 상태 동기화: 루프가 stopped인데 큐가 running이면 stopped로
+      const loopName = name.replace('-queue', '-loop')
+      const loopState = readState(loopName, STATE_DIR)
+      const loopDead = !loopState || loopState.status !== 'running' ||
+        (loopState.pid && !isPidAlive(loopState.pid))
+      if (state.status === 'running' && loopDead) {
+        changed = true
+        result.reset.push(`${name}: 루프 미실행 → 큐 상태 stopped`)
+      }
+
+      if (changed) {
+        const newStatus = (state.status === 'running' && loopDead) ? 'stopped' : state.status
+        writeState(name, { ...state, status: newStatus, queue }, STATE_DIR)
       }
     }
   }

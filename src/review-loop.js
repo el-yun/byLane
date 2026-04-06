@@ -8,6 +8,7 @@ import { mkdirSync } from 'fs'
 import { writeState, readState, appendLog } from './state.js'
 import { loadConfig } from './config.js'
 import { killExistingLoop, createAbsoluteTimer } from './loop-utils.js'
+import { maintainQueue } from './queue-utils.js'
 
 const config = loadConfig()
 const INTERVAL_MS = config.loop?.intervalMs ?? 300000
@@ -109,7 +110,21 @@ async function poll() {
     }
   }
 
-  saveQueue(Object.values(queueMap))
+  // 큐 유지보수: reconcile + expire + GC
+  const activePrNumbers = new Set(prs.map(pr => pr.number))
+  const maintained = maintainQueue(Object.values(queueMap), activePrNumbers)
+
+  if (maintained.resolvedCount > 0) {
+    appendLog('review-loop', `${maintained.resolvedCount}개 항목 resolved (더 이상 리뷰 요청 없음)`, STATE_DIR)
+  }
+  if (maintained.expiredCount > 0) {
+    appendLog('review-loop', `${maintained.expiredCount}개 항목 expired (TTL 초과)`, STATE_DIR)
+  }
+  if (maintained.removedCount > 0) {
+    appendLog('review-loop', `${maintained.removedCount}개 완료 항목 GC 제거`, STATE_DIR)
+  }
+
+  saveQueue(maintained.queue)
 
   if (newCount > 0) {
     appendLog('review-loop', `${newCount}개 PR이 큐에 추가됨`, STATE_DIR)
@@ -127,7 +142,14 @@ const { stop } = createAbsoluteTimer(poll, INTERVAL_MS)
 // 종료 처리
 function shutdown() {
   stop()
-  writeState('review-loop', { status: 'stopped' }, STATE_DIR)
+  writeState('review-loop', { status: 'stopped', stoppedAt: new Date().toISOString() }, STATE_DIR)
+
+  // 큐 상태도 stopped로 전환
+  const queueState = readState('review-queue', STATE_DIR)
+  if (queueState) {
+    writeState('review-queue', { ...queueState, status: 'stopped' }, STATE_DIR)
+  }
+
   process.exit(0)
 }
 process.on('SIGINT', shutdown)
