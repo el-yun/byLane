@@ -48,6 +48,42 @@ export function killExistingLoop(loopName, stateDir = '.bylane/state') {
 }
 
 /**
+ * 루프 프로세스의 PID를 반환한다.
+ * state 파일 → pgrep fallback 순서로 탐색.
+ * @param {string} loopName  e.g. 'review-loop'
+ * @param {string} stateDir
+ * @returns {{ pid: number, source: 'state' | 'pgrep' } | null}
+ */
+export function findLoopPid(loopName, stateDir = '.bylane/state') {
+  // 1) state 파일에서 PID 확인
+  const state = readState(loopName, stateDir)
+  if (state?.pid) {
+    const pid = Number(state.pid)
+    try {
+      process.kill(pid, 0)
+      return { pid, source: 'state' }
+    } catch {
+      // PID가 있지만 이미 죽었으면 pgrep으로 재시도
+    }
+  }
+
+  // 2) pgrep으로 프로세스명 검색
+  const scriptFile = `${loopName}.js`
+  try {
+    const result = execSync(`pgrep -f "${scriptFile}"`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim()
+    if (result) {
+      // 여러 PID가 있을 수 있음 — 첫 번째 사용
+      const pid = Number(result.split('\n')[0])
+      if (pid && pid !== process.pid) return { pid, source: 'pgrep' }
+    }
+  } catch {
+    // pgrep 결과 없음
+  }
+
+  return null
+}
+
+/**
  * tmux 세션이 살아있는지 확인
  * @param {string} sessionName
  * @returns {boolean}

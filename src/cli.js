@@ -223,7 +223,7 @@ if (command === 'install') {
   }
 } else if (command === 'loop') {
   const subCmd = args[1] || 'start'
-  const { resolveLoopMode, startTmuxLoops, stopTmuxLoops, isTmuxSessionAlive } = await import('./loop-utils.js')
+  const { resolveLoopMode, startTmuxLoops, stopTmuxLoops, isTmuxSessionAlive, findLoopPid } = await import('./loop-utils.js')
   const { loadConfig } = await import('./config.js')
   const config = loadConfig()
   const sessionName = config.loop?.sessionName ?? 'bylane-loops'
@@ -264,42 +264,50 @@ if (command === 'install') {
       stopped = true
     }
 
-    // 2) process 모드 PID 종료 시도 (모드 무관)
+    // 2) PID 기반 종료 (state → pgrep fallback)
     const { readState, writeState } = await import('./state.js')
     for (const loopName of ['review-loop', 'respond-loop']) {
-      const state = readState(loopName)
-      if (!state?.pid) continue
-      const pid = Number(state.pid)
-      let alive = false
-      try { process.kill(pid, 0); alive = true } catch {}
-
-      if (alive) {
-        try {
-          process.kill(pid, 'SIGTERM')
-          console.log(`  ${loopName} (PID: ${pid}) 종료`)
-        } catch {
-          console.log(`  ${loopName} (PID: ${pid}) 종료 실패`)
+      const found = findLoopPid(loopName)
+      if (!found) {
+        // state가 running이면 정리
+        const state = readState(loopName)
+        if (state?.status === 'running') {
+          writeState(loopName, { ...state, status: 'stopped', stoppedAt: new Date().toISOString() })
+          console.log(`  ${loopName}: 프로세스를 찾을 수 없음 — 상태 정리`)
+          stopped = true
         }
-      } else {
-        console.log(`  ${loopName} (PID: ${pid}) 이미 종료됨 — 상태 정리`)
+        continue
       }
-      writeState(loopName, { ...state, status: 'stopped', stoppedAt: new Date().toISOString() })
-      stopped = true
+
+      const { pid, source } = found
+      try {
+        process.kill(pid, 'SIGTERM')
+        const state = readState(loopName)
+        if (state) writeState(loopName, { ...state, status: 'stopped', stoppedAt: new Date().toISOString() })
+        console.log(`  ${loopName} (PID: ${pid}, 출처: ${source}) 종료`)
+        stopped = true
+      } catch (err) {
+        console.log(`  ${loopName} (PID: ${pid}) 종료 실패: ${err.message}`)
+        console.log(`  수동 종료: kill -9 ${pid}`)
+      }
     }
 
     if (!stopped) {
       console.log('  실행 중인 루프가 없습니다.')
     }
   } else if (subCmd === 'status') {
-    const alive = isTmuxSessionAlive(sessionName)
+    const tmuxAlive = isTmuxSessionAlive(sessionName)
     const { readState } = await import('./state.js')
-    const reviewState = readState('review-loop')
-    const respondState = readState('respond-loop')
     const mode = resolveLoopMode()
     console.log(`\n  모드: ${mode}`)
-    console.log(`  tmux 세션 (${sessionName}): ${alive ? '실행 중' : '없음'}`)
-    console.log(`  review-loop: ${reviewState?.status ?? 'unknown'}${reviewState?.pid ? ` (PID: ${reviewState.pid})` : ''}`)
-    console.log(`  respond-loop: ${respondState?.status ?? 'unknown'}${respondState?.pid ? ` (PID: ${respondState.pid})` : ''}\n`)
+    console.log(`  tmux 세션 (${sessionName}): ${tmuxAlive ? '실행 중' : '없음'}`)
+    for (const loopName of ['review-loop', 'respond-loop']) {
+      const state = readState(loopName)
+      const found = findLoopPid(loopName)
+      const pidInfo = found ? `PID: ${found.pid} (${found.source}, 실행 중)` : (state?.pid ? `PID: ${state.pid} (사망)` : '프로세스 없음')
+      console.log(`  ${loopName}: ${state?.status ?? 'unknown'} — ${pidInfo}`)
+    }
+    console.log('')
   } else {
     console.error('사용법: bylane loop <start|stop|status>')
     process.exit(1)
