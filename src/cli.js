@@ -12,6 +12,11 @@ const args = process.argv.slice(2)
 const command = args[0] || 'install'
 const useSymlink = args.includes('--symlink')
 
+// 사용자 설정 파일 — 절대 덮어쓰지 않는다
+const USER_CONFIG_FILES = [
+  '.bylane/bylane.json',
+]
+
 const TARGETS = [
   { src: join(ROOT, 'commands'), dest: join(CLAUDE_DIR, 'commands'), label: 'Commands' },
   { src: join(ROOT, 'hooks'),    dest: join(CLAUDE_DIR, 'hooks'),    label: 'Hooks' },
@@ -31,7 +36,7 @@ function backupAndCopy(src, dest, file, label) {
     const backupPath = `${destFile}.bak`
     renameSync(destFile, backupPath)
     copyFileSync(srcFile, destFile)
-    console.log(`  ~ ${label}: ${file} (기존 파일 -> ${file}.bak)`)
+    console.log(`  ~ ${label}: ${file} (업데이트됨, 기존 파일 -> ${file}.bak)`)
   } else {
     copyFileSync(srcFile, destFile)
     console.log(`  + ${label}: ${file}`)
@@ -48,41 +53,41 @@ function registerHooks() {
   const hookScript = join(CLAUDE_DIR, 'hooks', 'bylane-agent-tracker.js')
   settings.hooks = settings.hooks ?? {}
 
-  // PreToolUse
-  settings.hooks.PreToolUse = settings.hooks.PreToolUse ?? []
-  const preExists = settings.hooks.PreToolUse.some(h =>
-    h.hooks?.some(hh => hh.command?.includes('bylane-agent-tracker'))
-  )
-  if (!preExists) {
-    settings.hooks.PreToolUse.push({
-      matcher: 'Agent',
-      hooks: [{ type: 'command', command: `node ${hookScript} pre` }]
-    })
-    console.log('  + Hook: PreToolUse/Agent → bylane-agent-tracker')
-  } else {
-    console.log('  = Hook: PreToolUse/Agent (이미 등록됨)')
-  }
+  // 기존 bylane 훅 제거 후 재등록 (버전 업 시 경로 변경 대응)
+  const stripBylane = (arr) =>
+    (arr ?? []).filter(h => !h.hooks?.some(hh => hh.command?.includes('bylane-agent-tracker')))
 
-  // PostToolUse
-  settings.hooks.PostToolUse = settings.hooks.PostToolUse ?? []
-  const postExists = settings.hooks.PostToolUse.some(h =>
-    h.hooks?.some(hh => hh.command?.includes('bylane-agent-tracker'))
-  )
-  if (!postExists) {
-    settings.hooks.PostToolUse.push({
-      matcher: 'Agent',
-      hooks: [{ type: 'command', command: `node ${hookScript} post` }]
-    })
-    console.log('  + Hook: PostToolUse/Agent → bylane-agent-tracker')
-  } else {
-    console.log('  = Hook: PostToolUse/Agent (이미 등록됨)')
-  }
+  settings.hooks.PreToolUse = [
+    ...stripBylane(settings.hooks.PreToolUse),
+    { matcher: 'Agent', hooks: [{ type: 'command', command: `node ${hookScript} pre` }] }
+  ]
+  settings.hooks.PostToolUse = [
+    ...stripBylane(settings.hooks.PostToolUse),
+    { matcher: 'Agent', hooks: [{ type: 'command', command: `node ${hookScript} post` }] }
+  ]
 
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2))
+  console.log('  ~ Hook: bylane-agent-tracker 등록 (최신 경로로 갱신)')
+}
+
+function preservedConfigs() {
+  const found = USER_CONFIG_FILES.filter(f => existsSync(f))
+  if (found.length > 0) {
+    console.log('\n  [보존된 사용자 설정]')
+    found.forEach(f => console.log(`  * ${f}`))
+  }
+}
+
+function isUpdateMode() {
+  return existsSync(join(CLAUDE_DIR, 'commands', 'bylane.md'))
 }
 
 function install() {
-  console.log('\n  byLane 설치 중...\n')
+  const updating = isUpdateMode()
+  console.log(updating
+    ? '\n  byLane 업데이트 중...\n'
+    : '\n  byLane 설치 중...\n'
+  )
 
   for (const { src, dest, label } of TARGETS) {
     mkdirSync(dest, { recursive: true })
@@ -108,8 +113,17 @@ function install() {
 
   console.log('')
   registerHooks()
+  preservedConfigs()
 
-  console.log(`
+  if (updating) {
+    console.log(`
+  byLane 업데이트 완료!
+
+  사용자 설정(.bylane/bylane.json)은 그대로 유지됩니다.
+  Claude Code를 재시작하면 변경사항이 적용됩니다.
+`)
+  } else {
+    console.log(`
   byLane 설치 완료!
 
   다음 단계:
@@ -122,6 +136,7 @@ function install() {
 
      /bylane 다크모드 토글 추가해줘
 `)
+  }
 }
 
 if (command === 'install') {
