@@ -3,6 +3,7 @@
  * 루프 프로세스 공통 유틸
  */
 import { execSync } from 'child_process'
+import { join } from 'path'
 import { readState, writeState } from './state.js'
 import { loadConfig } from './config.js'
 
@@ -152,22 +153,34 @@ export function verifyTmuxLoops(sessionName = 'bylane-loops', stateDir = '.bylan
 /**
  * tmux 세션에서 review-loop + respond-loop을 실행
  * @param {string} sessionName
- * @param {string} stateDir
+ * @param {object} opts
+ * @param {string} [opts.stateDir]      상태 디렉토리 (상대경로)
+ * @param {string} [opts.packageRoot]   패키지 루트 경로 (스크립트 절대경로 해석용)
+ * @param {string} [opts.projectDir]    프로젝트 디렉토리 (tmux CWD, .bylane/ 기준)
  */
-export function startTmuxLoops(sessionName = 'bylane-loops', stateDir = '.bylane/state') {
+export function startTmuxLoops(sessionName = 'bylane-loops', opts = {}) {
+  const {
+    stateDir = '.bylane/state',
+    packageRoot = process.cwd(),
+    projectDir = process.cwd()
+  } = typeof opts === 'string' ? { stateDir: opts } : opts
+
   if (isTmuxSessionAlive(sessionName)) {
     console.log(`[tmux] 세션 '${sessionName}'이 이미 실행 중입니다.`)
     return { started: false, reason: 'already_running' }
   }
 
-  // 첫 번째 윈도우: review-loop
+  const reviewScript = join(packageRoot, 'src', 'review-loop.js')
+  const respondScript = join(packageRoot, 'src', 'respond-loop.js')
+
+  // 첫 번째 윈도우: review-loop (-c 로 프로젝트 디렉토리에서 실행)
   execSync(
-    `tmux new-session -d -s ${sessionName} -n review 'node src/review-loop.js'`,
+    `tmux new-session -d -s ${sessionName} -n review -c '${projectDir}' 'node ${reviewScript}'`,
     { stdio: 'inherit' }
   )
   // 두 번째 윈도우: respond-loop
   execSync(
-    `tmux new-window -t ${sessionName} -n respond 'node src/respond-loop.js'`,
+    `tmux new-window -t ${sessionName} -n respond -c '${projectDir}' 'node ${respondScript}'`,
     { stdio: 'inherit' }
   )
 

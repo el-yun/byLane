@@ -286,14 +286,14 @@ if (command === 'install') {
     const mode = resolveLoopMode()
 
     if (mode === 'tmux') {
-      startTmuxLoops(sessionName)
+      startTmuxLoops(sessionName, { packageRoot: ROOT, projectDir: process.cwd() })
       console.log(`\n  tmux 세션에 접속하려면: tmux attach -t ${sessionName}\n`)
     } else {
       // process 모드: 현재 프로세스에서 직접 실행
       console.log('\n  process 모드: review-loop + respond-loop 실행\n')
       const { spawn } = await import('child_process')
-      const review = spawn(process.execPath, ['src/review-loop.js'], { stdio: 'inherit', detached: false })
-      const respond = spawn(process.execPath, ['src/respond-loop.js'], { stdio: 'inherit', detached: false })
+      const review = spawn(process.execPath, [join(ROOT, 'src', 'review-loop.js')], { stdio: 'inherit', detached: false, cwd: process.cwd() })
+      const respond = spawn(process.execPath, [join(ROOT, 'src', 'respond-loop.js')], { stdio: 'inherit', detached: false, cwd: process.cwd() })
 
       function shutdownAll() {
         review.kill('SIGTERM')
