@@ -486,17 +486,45 @@ respond-loop    독립: 5분 주기 리뷰 코멘트 감지
 }
 ```
 
-### Slack 웹훅 설정
+### Slack 웹훅 설정 (Workflow Builder)
 
-1. [Slack API](https://api.slack.com/apps) → **Create New App** → **Incoming Webhooks** 활성화
-2. **Add New Webhook to Workspace** → 채널 선택 → Webhook URL 복사
-3. `.bylane/bylane.json`에 입력:
+**1. Workflow 생성**
+
+Slack → **Automations** → **New Workflow** → **Start from scratch**
+트리거: **Webhook**
+
+**2. 변수 스키마 정의**
+
+웹훅 트리거 설정에서 아래 변수를 추가:
+
+| 변수명 | 타입 |
+|--------|------|
+| `title` | 텍스트 |
+| `status` | 텍스트 |
+| `url` | 텍스트 |
+| `elapsed` | 텍스트 |
+| `reason` | 텍스트 |
+
+**3. 메시지 단계 추가**
+
+"Send a message" 단계에서 변수 참조:
+```
+{{title}} — {{status}}
+{{url}}
+{{elapsed}}{{reason}}
+```
+
+**4. Workflow 게시 후 Webhook URL 복사**
+
+URL 형식: `https://hooks.slack.com/workflows/...`
+
+**5. `.bylane/bylane.json`에 입력**
 
 ```json
 "notifications": {
   "slack": {
     "enabled": true,
-    "webhookUrl": "https://hooks.slack.com/services/T.../B.../..."
+    "webhookUrl": "https://hooks.slack.com/workflows/..."
   }
 }
 ```

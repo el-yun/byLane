@@ -38,21 +38,44 @@ PR: PR_URL
 
 ### Slack 알림 (notifications.slack.enabled: true)
 
-`config.notifications.slack.webhookUrl`로 Incoming Webhook POST:
+Slack Workflow Builder 웹훅으로 POST한다.
+Workflow에 정의된 변수 스키마와 페이로드 키가 일치해야 한다.
 
 ```bash
-# 완료 메시지
+# 완료 (type: completed)
 curl -s -X POST "$SLACK_WEBHOOK_URL" \
   -H "Content-Type: application/json" \
-  -d '{"text":"[byLane] ✅ 완료: TITLE\nPR: PR_URL | 소요 시간: ELAPSED"}'
+  -d "{
+    \"title\": \"TITLE\",
+    \"status\": \"completed\",
+    \"url\": \"PR_URL\",
+    \"elapsed\": \"ELAPSED\",
+    \"reason\": \"\"
+  }"
 
-# 개입 필요 메시지
+# 개입 필요 (type: escalated / error)
 curl -s -X POST "$SLACK_WEBHOOK_URL" \
   -H "Content-Type: application/json" \
-  -d '{"text":"[byLane] ⚠️ 개입 필요: TITLE\n이유: REASON | 확인: PR_URL"}'
+  -d "{
+    \"title\": \"TITLE\",
+    \"status\": \"escalated\",
+    \"url\": \"PR_URL\",
+    \"elapsed\": \"\",
+    \"reason\": \"REASON\"
+  }"
 ```
 
-`webhookUrl`이 비어 있으면 Slack 알림을 건너뜬다.
+Workflow Builder에서 정의해야 할 변수 스키마:
+
+| 변수명 | 타입 | 설명 |
+|--------|------|------|
+| `title` | 텍스트 | 작업 제목 |
+| `status` | 텍스트 | `completed` / `escalated` / `error` |
+| `url` | 텍스트 | GitHub PR/Issue URL |
+| `elapsed` | 텍스트 | 소요 시간 (완료 시) |
+| `reason` | 텍스트 | 실패/에스컬레이션 이유 |
+
+`webhookUrl`이 비어 있으면 Slack 알림을 건너뛴다.
 
 ### Telegram 알림 (notifications.telegram.enabled: true)
 
