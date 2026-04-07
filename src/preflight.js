@@ -20,7 +20,18 @@ function run(cmd) {
 export function checkTmux() {
   const which = run('which tmux')
   if (!which.ok) return { ok: false, reason: 'tmux 미설치 — loop을 process 모드로 실행합니다', fix: 'brew install tmux  # 또는 https://github.com/tmux/tmux' }
-  return { ok: true, detail: which.out }
+
+  const version = run('tmux -V')
+  if (!version.ok) return { ok: false, reason: 'tmux 바이너리가 있으나 실행 불가', fix: 'tmux 재설치 또는 PATH 확인' }
+
+  // 실제 세션 생성/삭제로 동작 검증
+  const testSession = `bylane-preflight-test-${Date.now()}`
+  const create = run(`tmux new-session -d -s ${testSession}`)
+  if (!create.ok) return { ok: false, reason: `tmux 세션 생성 실패: ${create.out || '알 수 없는 오류'}`, fix: 'tmux 서버 상태 확인: tmux kill-server && tmux new-session -d -s test' }
+
+  run(`tmux kill-session -t ${testSession}`)
+
+  return { ok: true, detail: version.out }
 }
 
 function checkGhCli() {

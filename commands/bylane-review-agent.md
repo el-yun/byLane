@@ -18,17 +18,25 @@ description: PR의 diff를 파일별로 분석하여 코드 라인별 인라인 
 
 ## GitHub 리뷰 템플릿 탐지
 
-bylane 설정보다 먼저 프로젝트 내 GitHub 리뷰 템플릿을 탐색한다:
+다음 순서로 탐색한다. 먼저 발견된 파일을 **최우선**으로 따른다:
 
 ```bash
+# 1순위: 프로젝트 .github/ 커스텀 템플릿
 ls .github/REVIEW_TEMPLATE.md \
    .github/review_template.md \
    .github/CODE_REVIEW_TEMPLATE.md \
    docs/REVIEW_TEMPLATE.md 2>/dev/null | head -1
+
+# 2순위: 프로젝트 .bylane/ 설치 템플릿 (bylane setup 시 설치됨)
+# .bylane/templates/review-template.md
+
+# 3순위: 글로벌 fallback (~/.claude/templates/bylane/review-template.md)
 ```
 
-GitHub 템플릿이 있으면 해당 형식을 **최우선**으로 따른다.
-없으면 `templates/review-template.md`를 사용한다.
+우선순위 요약:
+1. `.github/` 내 커스텀 템플릿 (프로젝트별 재정의)
+2. `.bylane/templates/review-template.md` (프로젝트 기본값)
+3. `~/.claude/templates/bylane/review-template.md` (글로벌 기본값)
 
 ## 검사 항목 선택
 

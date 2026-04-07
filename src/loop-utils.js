@@ -98,10 +98,63 @@ export function isTmuxSessionAlive(sessionName) {
 }
 
 /**
+ * tmux 세션의 두 루프가 정상 기동됐는지 검증한다.
+ * state 파일에 running 상태가 기록될 때까지 최대 timeoutMs 대기.
+ * @param {string} sessionName
+ * @param {string} stateDir
+ * @param {number} timeoutMs
+ * @returns {{ ok: boolean, review: object, respond: object }}
+ */
+export function verifyTmuxLoops(sessionName = 'bylane-loops', stateDir = '.bylane/state', timeoutMs = 8000) {
+  const loops = ['review-loop', 'respond-loop']
+  const result = {}
+
+  // 1. tmux 세션 및 윈도우 존재 확인
+  if (!isTmuxSessionAlive(sessionName)) {
+    return { ok: false, review: { alive: false }, respond: { alive: false } }
+  }
+
+  let windows = []
+  try {
+    const out = execSync(
+      `tmux list-windows -t ${sessionName} -F '#{window_name}'`,
+      { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
+    ).trim()
+    windows = out.split('\n').map(w => w.trim())
+  } catch { /* 세션이 막 종료됐을 수 있음 */ }
+
+  // 2. 각 루프의 state 파일이 running 상태가 될 때까지 폴링
+  const deadline = Date.now() + timeoutMs
+  const pending = new Set(loops)
+
+  while (pending.size > 0 && Date.now() < deadline) {
+    for (const loop of [...pending]) {
+      const state = readState(loop, stateDir)
+      if (state?.status === 'running' && state?.pid) {
+        result[loop] = { alive: true, pid: state.pid, startedAt: state.startedAt }
+        pending.delete(loop)
+      }
+    }
+    if (pending.size > 0) execSync('sleep 0.5')
+  }
+
+  // 타임아웃된 루프는 실패로 처리
+  for (const loop of pending) {
+    const windowName = loop.replace('-loop', '')
+    const windowAlive = windows.includes(windowName)
+    result[loop] = { alive: false, windowAlive }
+  }
+
+  const ok = loops.every(l => result[l]?.alive)
+  return { ok, review: result['review-loop'], respond: result['respond-loop'] }
+}
+
+/**
  * tmux 세션에서 review-loop + respond-loop을 실행
  * @param {string} sessionName
+ * @param {string} stateDir
  */
-export function startTmuxLoops(sessionName = 'bylane-loops') {
+export function startTmuxLoops(sessionName = 'bylane-loops', stateDir = '.bylane/state') {
   if (isTmuxSessionAlive(sessionName)) {
     console.log(`[tmux] 세션 '${sessionName}'이 이미 실행 중입니다.`)
     return { started: false, reason: 'already_running' }
@@ -118,8 +171,21 @@ export function startTmuxLoops(sessionName = 'bylane-loops') {
     { stdio: 'inherit' }
   )
 
-  console.log(`[tmux] 세션 '${sessionName}' 시작 완료 (review-loop + respond-loop)`)
-  return { started: true, sessionName }
+  console.log(`[tmux] 세션 '${sessionName}' 시작 — 루프 기동 확인 중...`)
+  const verification = verifyTmuxLoops(sessionName, stateDir)
+
+  if (verification.ok) {
+    console.log(`[tmux] review-loop (PID: ${verification.review.pid}) ✓`)
+    console.log(`[tmux] respond-loop (PID: ${verification.respond.pid}) ✓`)
+  } else {
+    const reviewStatus = verification.review?.alive ? `✓ PID: ${verification.review.pid}` : `✗ 기동 실패 (창: ${verification.review?.windowAlive ? '있음' : '없음'})`
+    const respondStatus = verification.respond?.alive ? `✓ PID: ${verification.respond.pid}` : `✗ 기동 실패 (창: ${verification.respond?.windowAlive ? '있음' : '없음'})`
+    console.log(`[tmux] review-loop  ${reviewStatus}`)
+    console.log(`[tmux] respond-loop ${respondStatus}`)
+    console.log(`[tmux] 일부 루프가 정상 기동되지 않았습니다. tmux attach -t ${sessionName} 으로 확인하세요.`)
+  }
+
+  return { started: true, sessionName, verified: verification.ok, verification }
 }
 
 /**
@@ -174,9 +240,10 @@ export function resolveLoopMode() {
   if (mode === 'tmux') {
     try {
       execSync('which tmux', { stdio: ['pipe', 'pipe', 'pipe'] })
+      execSync('tmux -V', { stdio: ['pipe', 'pipe', 'pipe'] })
       return 'tmux'
     } catch {
-      console.log('[loop] tmux 미설치 — process 모드로 fallback합니다.')
+      console.log('[loop] tmux를 사용할 수 없음 — process 모드로 fallback합니다.')
       return 'process'
     }
   }

@@ -36,7 +36,7 @@ poller.onChange((states) => {
   pipeline.update(states, readSubagents())
   log.update(states)
   queue.update()
-  status.update()
+  status.update(lastStates)
 })
 
 // 's' — 실행 중인 루프/에이전트 선택 종료

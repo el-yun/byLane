@@ -72,7 +72,7 @@ export const DEFAULT_CONFIG = {
     includeModel: true,
     includeCodeExample: true,
     autoApprove: false,
-    templateFile: '',
+    templateFile: '.bylane/templates/review-template.md',
     severityEmoji: {
       CRITICAL: '[CRITICAL]',
       HIGH: '[HIGH]',

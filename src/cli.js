@@ -18,8 +18,9 @@ const USER_CONFIG_FILES = [
 ]
 
 const TARGETS = [
-  { src: join(ROOT, 'commands'), dest: join(CLAUDE_DIR, 'commands'), label: 'Commands' },
-  { src: join(ROOT, 'hooks'),    dest: join(CLAUDE_DIR, 'hooks'),    label: 'Hooks' },
+  { src: join(ROOT, 'commands'),  dest: join(CLAUDE_DIR, 'commands'),             label: 'Commands' },
+  { src: join(ROOT, 'hooks'),     dest: join(CLAUDE_DIR, 'hooks'),                label: 'Hooks' },
+  { src: join(ROOT, 'templates'), dest: join(CLAUDE_DIR, 'templates', 'bylane'),  label: 'Templates' },
 ]
 
 function backupAndCopy(src, dest, file, label) {
@@ -369,6 +370,35 @@ if (command === 'install') {
     console.error('사용법: bylane loop <start|stop|status>')
     process.exit(1)
   }
+} else if (command === 'templates') {
+  const subCmd = args[1] || 'install'
+  if (subCmd === 'install') {
+    const globalTemplatesDir = join(CLAUDE_DIR, 'templates', 'bylane')
+    const projectTemplatesDir = join('.bylane', 'templates')
+    if (!existsSync(globalTemplatesDir)) {
+      console.error('  글로벌 템플릿이 없습니다. 먼저 npx @elyun/bylane install 을 실행하세요.')
+      process.exit(1)
+    }
+    mkdirSync(projectTemplatesDir, { recursive: true })
+    const files = readdirSync(globalTemplatesDir)
+    let copied = 0
+    for (const file of files) {
+      const dest = join(projectTemplatesDir, file)
+      if (!existsSync(dest)) {
+        copyFileSync(join(globalTemplatesDir, file), dest)
+        console.log(`  + Templates: ${file}`)
+        copied++
+      } else {
+        console.log(`  = Templates: ${file} (이미 존재, 건너뜀)`)
+      }
+    }
+    console.log(copied > 0
+      ? `\n  템플릿 ${copied}개가 .bylane/templates/ 에 설치되었습니다.`
+      : '\n  모든 템플릿이 이미 설치되어 있습니다.')
+  } else {
+    console.error('사용법: bylane templates install')
+    process.exit(1)
+  }
 } else if (command === 'monitor') {
   // 항상 현재 패키지의 모니터 실행 (버전 일치 보장)
   const monitorPath = join(__dirname, 'monitor', 'index.js')
@@ -377,6 +407,6 @@ if (command === 'install') {
   child.on('exit', code => process.exit(code ?? 0))
 } else {
   console.error(`알 수 없는 명령: ${command}`)
-  console.error('사용법: npx @elyun/bylane [install|uninstall|loop|monitor|preflight|state|memory|cleanup] [--symlink]')
+  console.error('사용법: npx @elyun/bylane [install|uninstall|loop|monitor|preflight|state|memory|cleanup|templates] [--symlink]')
   process.exit(1)
 }

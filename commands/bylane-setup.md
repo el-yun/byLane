@@ -10,9 +10,10 @@ ALWAYS complete all 8 steps before saving. NEVER skip steps.
 
 ## 실행 전 준비
 
-1. `.bylane/` 디렉토리가 없으면 생성:
+1. `.bylane/` 디렉토리가 없으면 생성하고 기본 템플릿을 설치:
    ```bash
    mkdir -p .bylane/state
+   npx @elyun/bylane templates install
    ```
 
 2. 기존 bylane.json 있으면 현재 설정을 로드해 기본값으로 사용.
