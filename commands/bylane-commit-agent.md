@@ -66,6 +66,26 @@ ls .gitmessage .github/commit-template.txt .github/COMMIT_TEMPLATE.md 2>/dev/nul
    npx @elyun/bylane state write commit-agent '{"status":"completed","progress":100,"branchName":"BRANCH_NAME","commitSha":"COMMIT_SHA"}'
    ```
 
+## Slack 완료 알림
+
+`.bylane/bylane.json`의 `notifications.slack.enabled: true`이고 `webhookUrl`이 있으면 전송:
+
+```bash
+SLACK_WEBHOOK_URL=$(node -e "try{const c=JSON.parse(require('fs').readFileSync('.bylane/bylane.json','utf8'));const s=c.notifications?.slack;process.stdout.write(s?.enabled&&s?.webhookUrl?s.webhookUrl:'')}catch(e){}" 2>/dev/null)
+
+[ -n "$SLACK_WEBHOOK_URL" ] && curl -s -X POST "$SLACK_WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"title\": \"[commit-agent] 커밋 완료 (BRANCH_NAME)\",
+    \"status\": \"completed\",
+    \"url\": \"\",
+    \"elapsed\": \"ELAPSED\",
+    \"reason\": \"\"
+  }"
+```
+
+---
+
 ## 출력
 
 `.bylane/state/commit-agent.json`:

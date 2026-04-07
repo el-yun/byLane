@@ -217,6 +217,28 @@ npx @elyun/bylane state write code-agent '{
 
 ---
 
+## Slack 완료 알림
+
+`.bylane/bylane.json`의 `notifications.slack.enabled: true`이고 `webhookUrl`이 있으면 전송:
+
+```bash
+SLACK_WEBHOOK_URL=$(node -e "try{const c=JSON.parse(require('fs').readFileSync('.bylane/bylane.json','utf8'));const s=c.notifications?.slack;process.stdout.write(s?.enabled&&s?.webhookUrl?s.webhookUrl:'')}catch(e){}" 2>/dev/null)
+
+[ -n "$SLACK_WEBHOOK_URL" ] && curl -s -X POST "$SLACK_WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"title\": \"[code-agent] #ISSUE_NUMBER 구현 완료\",
+    \"status\": \"completed\",
+    \"url\": \"ISSUE_URL\",
+    \"elapsed\": \"ELAPSED\",
+    \"reason\": \"\"
+  }"
+```
+
+`ISSUE_URL`은 `.bylane/state/issue-agent.json`의 `issueUrl`.
+
+---
+
 ## issueMemory 기록
 
 ```bash

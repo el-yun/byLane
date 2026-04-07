@@ -129,6 +129,26 @@ curl -s \
 }
 ```
 
+## Slack 완료 알림
+
+`.bylane/bylane.json`의 `notifications.slack.enabled: true`이고 `webhookUrl`이 있으면 전송:
+
+```bash
+SLACK_WEBHOOK_URL=$(node -e "try{const c=JSON.parse(require('fs').readFileSync('.bylane/bylane.json','utf8'));const s=c.notifications?.slack;process.stdout.write(s?.enabled&&s?.webhookUrl?s.webhookUrl:'')}catch(e){}" 2>/dev/null)
+
+[ -n "$SLACK_WEBHOOK_URL" ] && curl -s -X POST "$SLACK_WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"title\": \"[respond-agent] PR #PR_NUMBER 리뷰 대응 완료 (RESOLVED_COUNT건)\",
+    \"status\": \"completed\",
+    \"url\": \"PR_URL\",
+    \"elapsed\": \"ELAPSED\",
+    \"reason\": \"\"
+  }"
+```
+
+---
+
 ## 수동 실행
 
 `/bylane respond #45`

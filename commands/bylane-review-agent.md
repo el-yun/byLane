@@ -200,6 +200,26 @@ curl -s -X POST \
 npx @elyun/bylane state write review-agent '{"status":"completed","progress":100,"approved":APPROVED_BOOL,"commentCount":COMMENT_COUNT}'
 ```
 
+## Slack 완료 알림
+
+`.bylane/bylane.json`의 `notifications.slack.enabled: true`이고 `webhookUrl`이 있으면 전송:
+
+```bash
+SLACK_WEBHOOK_URL=$(node -e "try{const c=JSON.parse(require('fs').readFileSync('.bylane/bylane.json','utf8'));const s=c.notifications?.slack;process.stdout.write(s?.enabled&&s?.webhookUrl?s.webhookUrl:'')}catch(e){}" 2>/dev/null)
+
+[ -n "$SLACK_WEBHOOK_URL" ] && curl -s -X POST "$SLACK_WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"title\": \"[review-agent] PR #PR_NUMBER 리뷰 완료 (COMMENT_COUNT건)\",
+    \"status\": \"completed\",
+    \"url\": \"PR_URL\",
+    \"elapsed\": \"ELAPSED\",
+    \"reason\": \"\"
+  }"
+```
+
+---
+
 ## 출력
 
 `.bylane/state/review-agent.json`:

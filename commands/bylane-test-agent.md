@@ -58,6 +58,38 @@ npx @elyun/bylane state write test-agent '{"status":"in_progress","startedAt":"'
 }
 ```
 
+## Slack 완료 알림
+
+`.bylane/bylane.json`의 `notifications.slack.enabled: true`이고 `webhookUrl`이 있으면 전송:
+
+```bash
+SLACK_WEBHOOK_URL=$(node -e "try{const c=JSON.parse(require('fs').readFileSync('.bylane/bylane.json','utf8'));const s=c.notifications?.slack;process.stdout.write(s?.enabled&&s?.webhookUrl?s.webhookUrl:'')}catch(e){}" 2>/dev/null)
+
+# 통과 시
+[ -n "$SLACK_WEBHOOK_URL" ] && curl -s -X POST "$SLACK_WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"title\": \"[test-agent] 테스트 통과 (PASSED/TOTAL)\",
+    \"status\": \"completed\",
+    \"url\": \"\",
+    \"elapsed\": \"ELAPSED\",
+    \"reason\": \"\"
+  }"
+
+# 실패 시 — status를 escalated로
+[ -n "$SLACK_WEBHOOK_URL" ] && curl -s -X POST "$SLACK_WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"title\": \"[test-agent] 테스트 실패 (FAILED/TOTAL)\",
+    \"status\": \"escalated\",
+    \"url\": \"\",
+    \"elapsed\": \"\",
+    \"reason\": \"FAILURE_SUMMARY\"
+  }"
+```
+
+---
+
 ## 수동 실행
 
 `/bylane test`
