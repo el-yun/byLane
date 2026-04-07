@@ -8,7 +8,7 @@ export const DEFAULT_CONFIG = {
     linear: { enabled: false, apiKey: '' }
   },
   notifications: {
-    slack: { enabled: false, channel: '' },
+    slack: { enabled: false, webhookUrl: '' },
     telegram: { enabled: false, chatId: '' }
   },
   team: {

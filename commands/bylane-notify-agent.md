@@ -38,18 +38,21 @@ PR: PR_URL
 
 ### Slack 알림 (notifications.slack.enabled: true)
 
-Slack MCP `slack_send_message` 도구 사용:
-- 채널: `config.notifications.slack.channel`
-- 완료 메시지:
-  ```
-  [byLane] ✅ 완료: TITLE
-  PR: PR_URL | 소요 시간: ELAPSED
-  ```
-- 개입 필요 메시지:
-  ```
-  [byLane] ⚠️ 개입 필요: TITLE
-  이유: REASON | 확인: PR_URL
-  ```
+`config.notifications.slack.webhookUrl`로 Incoming Webhook POST:
+
+```bash
+# 완료 메시지
+curl -s -X POST "$SLACK_WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"[byLane] ✅ 완료: TITLE\nPR: PR_URL | 소요 시간: ELAPSED"}'
+
+# 개입 필요 메시지
+curl -s -X POST "$SLACK_WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"[byLane] ⚠️ 개입 필요: TITLE\n이유: REASON | 확인: PR_URL"}'
+```
+
+`webhookUrl`이 비어 있으면 Slack 알림을 건너뜬다.
 
 ### Telegram 알림 (notifications.telegram.enabled: true)
 
